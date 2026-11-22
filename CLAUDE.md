@@ -35,7 +35,7 @@ Outils → Données de référence → Sauvegarde → Écran enfants → Navigat
 
 Autres éléments :
 - La barre `#kidbar` contient l'avatar, le prénom, le bouton 🎨 et les onglets. Elle est visible sur les écrans Setup, Progress et Result.
-- Le header contient le menu `⋮` (export / import). Il est masqué pendant le jeu via `body.playing`.
+- Le header contient le menu `⋮` (export / import, test du micro). Il est masqué pendant le jeu via `body.playing`.
 - `show()` applique aussi le thème de l'enfant courant et la classe `body.playing`.
 
 ## Modèle de données (localStorage)
@@ -113,6 +113,11 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - Une réponse vocale retire 0,6 s au temps mesuré, pour compenser la latence de la reconnaissance.
 - Navigateurs : Chrome, Edge et Safari, mais pas Firefox. Chrome envoie l'audio aux serveurs de Google, donc il faut Internet.
 
+- **Statut (2026-11-22)** : sur la tablette Android 8.1, ça marche pour des phrases mais pas pour un nombre dit seul. L'utilisateur pense qu'il n'y a pas de vraie solution avec la Web Speech API, et je suis d'accord : impossible de « biaiser » Chrome vers des nombres. Options proposées, **décision en attente** :
+  1. garder la voix avec la consigne « ça fait … » (c'est ce qui est en ligne) et voir à l'usage ;
+  2. retirer le mode vocal, ou le cacher dans le menu ⋮ comme option expérimentale ;
+  3. reconnaissance hors ligne (Vosk, modèle d'environ 40 Mo) : déconseillée, car elle casse le fichier unique et elle est trop lourde pour la tablette.
+
 ## Thèmes
 
 - Trois thèmes, définis par des variables CSS sur `:root[data-theme=…]` : **lagon** (par défaut, également appliqué à `:root` seul), **bonbon** et **arcade** (sombre).
@@ -148,6 +153,15 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 - Les captures prises juste après une navigation peuvent paraître pâles : c'est l'animation `fade` des écrans, pas un bug.
 - `--virtual-time-budget` n'avance pas toujours `requestAnimationFrame`. Pour tester un parcours de jeu, il vaut mieux simuler des frappes clavier avec `KeyboardEvent("keydown")` que d'attendre le sablier.
 - Pour tester le service worker ou le manifeste, il faut servir en http (`python3 -m http.server`), pas en `file://`.
+
+## Évolutions récentes (2026-11-22, toutes en ligne)
+
+- « Revoir mes erreurs » ne compte plus comme une séance (pas de 20/20 sur 3 calculs refaits). Ses essais comptent quand même à moitié pour chaque calcul (voir Modèle de données).
+- Temps de réponse au clavier compté au premier chiffre d'une bonne réponse : la vitesse de frappe ne pénalise plus l'acquisition.
+- Plus de touche OK : validation automatique au bon nombre de chiffres. Le 0 est au centre de la dernière ligne du pavé.
+- Voix : seule la bonne réponse valide, tolérance aux sons proches, test du micro, consigne « ça fait … ». Voir la section Voix et son statut.
+
+Pistes proposées mais jamais demandées (ne pas faire sans accord) : retirer +0 des tables d'addition, mettre « Ajouter à l'écran d'accueil » dans le menu ⋮, ajouter « moitié de 18 ».
 
 ## Pièges et choix déjà faits
 
