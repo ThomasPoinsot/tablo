@@ -47,7 +47,7 @@ db = { kids: [Kid], currentId: "id" }
 Kid = {
   id, name (≤ 20 car.), avatar (emoji de AVATARS), created,
   settings: { type: "add"|"mul"|"dm", addTables: [0..10], mulTables: [2..10],
-              dmKinds: {double, half}, dmParts: [1..3], count, time (s),
+              dmKinds: {double, half}, dmParts: [1..3], count (10 | 20 | 40, constante COUNT_CHOICES), time (s),
               mode: "random"|"smart", voice: bool, theme: "lagon"|"bonbon"|"arcade" },
   history: [{ d (timestamp), type, mode: "random"|"smart"|"errors", n, time, good, note, pts }],  // plus récent en premier, max 200
   records: { "type|mode|n|time": points },  // pas de record en mode "errors"
@@ -122,7 +122,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v5`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v6`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.

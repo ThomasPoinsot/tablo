@@ -145,7 +145,7 @@ dialog label { font-weight: 700; font-size: 14px; display: block; margin-bottom:
 .kidchip { display: flex; align-items: center; gap: 8px; background: var(--card); border: 0; border-radius: 999px; padding: 4px 14px 4px 4px; box-shadow: var(--shadow); font-weight: 800; font-size: 17px; }
 .kidchip .sw { color: var(--muted); font-size: 14px; }
 .tabs { display: flex; background: var(--chip); border-radius: 999px; padding: 4px; gap: 4px; }
-.tab { border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; font-weight: 800; font-size: 15px; color: var(--muted); }
+.tab { white-space: nowrap; border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; font-weight: 800; font-size: 15px; color: var(--muted); }
 .tab.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 
 /* ---- Réglages ---- */
@@ -332,7 +332,11 @@ td.koc { color: var(--ko); font-weight: 800; }
   .rank .pct { grid-column: 3; grid-row: 1; }
   .rank .bar { grid-column: 2 / 4; grid-row: 2; }
   .av { width: 74px; height: 74px; font-size: 42px; }
-  .tab { padding: 7px 10px; font-size: 14px; }
+  .tab { padding: 7px 9px; font-size: 13px; }
+  .tabs { padding: 3px; gap: 2px; flex: none; }
+  .kidchip .sw { display: none; }
+  .kidchip { gap: 6px; }
+  .kbtheme { width: 36px; height: 36px; font-size: 17px; }
   .tl-long { display: none; }
   .tl-short { display: inline; }
   .kidbar { flex-wrap: nowrap; }
@@ -662,6 +666,8 @@ td.koc { color: var(--ko); font-weight: 800; }
 
   // Tables de multiplication proposées (la table du 1 est volontairement exclue, y compris les « × 1 »)
   const MUL_RANGE = range(2, 10);
+  // Choix proposés pour le nombre de calculs par séance
+  const COUNT_CHOICES = [10, 20, 40];
 
   const DEFAULT_SETTINGS = {
     type: "mul",
@@ -690,6 +696,9 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (!MODE_LABEL[s.mode] || s.mode === "errors") s.mode = "random";
     ["addTables", "mulTables", "dmParts"].forEach((f) => { if (!Array.isArray(s[f])) s[f] = clone(DEFAULT_SETTINGS[f]); });
     s.mulTables = s.mulTables.filter((t) => MUL_RANGE.includes(t));
+    if (!COUNT_CHOICES.includes(s.count)) {  // ancien réglage (5, 15, 30, 50…) : on prend le choix le plus proche
+      s.count = COUNT_CHOICES.reduce((a, b) => Math.abs(b - s.count) < Math.abs(a - s.count) ? b : a);
+    }
     k.settings = s;
     k.name = String(k.name).slice(0, 20);
     if (!k.avatar) k.avatar = AVATARS[0];
@@ -1035,7 +1044,7 @@ td.koc { color: var(--ko); font-weight: 800; }
         (!weak.length && !unseen && pool.length ? "<br>Tout est acquis dans cette sélection, bravo ! 🎉" : "");
     }
 
-    makeChips($("chipsCount"), [5, 10, 15, 20, 30, 50].map((n) => ({ value: n, label: String(n) })),
+    makeChips($("chipsCount"), COUNT_CHOICES.map((n) => ({ value: n, label: String(n) })),
       (v) => s.count === v, (v) => { s.count = v; });
     makeChips($("chipsTime"), [3, 5, 8, 10, 15, 20, 30].map((n) => ({ value: n, label: n + " s" })),
       (v) => s.time === v, (v) => { s.time = v; });
