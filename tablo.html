@@ -245,6 +245,7 @@ body.playing .wrap { padding-top: max(14px, env(safe-area-inset-top)); }
 
 /* ---- Résultats ---- */
 .score-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
+.score-head.review { grid-template-columns: 1fr; }
 .big { font-size: 44px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .big small { font-size: 20px; color: var(--muted); }
 .lab { font-size: 13px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
@@ -545,9 +546,9 @@ td.koc { color: var(--ko); font-weight: 800; }
       <div class="msg" id="rMsg"></div>
       <div class="record" id="rRecord"></div>
       <div class="score-head" style="margin-top:14px">
-        <div><div class="lab">Note</div><div class="big" id="rNote">0<small>/20</small></div></div>
-        <div><div class="lab">Points</div><div class="big" id="rPts">0</div></div>
-        <div><div class="lab">Bonnes réponses</div><div class="big" id="rGood">0<small>/0</small></div></div>
+        <div id="rNoteBox"><div class="lab">Note</div><div class="big" id="rNote">0<small>/20</small></div></div>
+        <div id="rPtsBox"><div class="lab">Points</div><div class="big" id="rPts">0</div></div>
+        <div><div class="lab" id="rGoodLab">Bonnes réponses</div><div class="big" id="rGood">0<small>/0</small></div></div>
       </div>
       <div class="subtle" style="text-align:center;margin-top:10px" id="rAvg"></div>
     </div>
@@ -702,7 +703,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     k.settings = s;
     k.name = String(k.name).slice(0, 20);
     if (!k.avatar) k.avatar = AVATARS[0];
-    k.history = Array.isArray(k.history) ? k.history : [];
+    k.history = (Array.isArray(k.history) ? k.history : []).filter((h) => h && h.mode !== "errors");  // les séances « Revoir mes erreurs » ne comptent pas
     k.records = k.records && typeof k.records === "object" ? k.records : {};
     k.facts = k.facts && typeof k.facts === "object" ? k.facts : {};
     return k;
@@ -1138,11 +1139,11 @@ td.koc { color: var(--ko); font-weight: 800; }
     trente: 30, quarante: 40, cinquante: 50, soixante: 60, cent: 100, cents: 100, sans: 100, sang: 100,
     mille: 1000, mil: 1000
   };
-  // Renvoie le dernier nombre prononcé (chiffres ou toutes lettres), ou null.
-  function parseFrNumber(txt) {
-    const t = txt.toLowerCase().replace(/[.,!?;:]/g, " ");
+  // Renvoie tous les nombres prononcés (chiffres ou toutes lettres), dans l'ordre.
+  function parseFrNumbers(txt) {
+    const t = String(txt || "").toLowerCase().replace(/[.,!?;:]/g, " ");
     const digits = t.match(/\d{1,3}(?:[   ]\d{3})+|\d+/g);
-    if (digits) return parseInt(digits[digits.length - 1].replace(/\D/g, ""), 10);
+    if (digits) return digits.map((d) => parseInt(d.replace(/\D/g, ""), 10));
     const tokens = t.replace(/[-'’]/g, " ").split(/\s+/).filter(Boolean);
     const nums = [];
     let total = 0, cur = 0, started = false;
@@ -1165,10 +1166,20 @@ td.koc { color: var(--ko); font-weight: 800; }
       cur += v; started = true;
     }
     flush();
+    return nums;
+  }
+  // Renvoie le dernier nombre prononcé, ou null.
+  function parseFrNumber(txt) {
+    const nums = parseFrNumbers(txt);
     return nums.length ? nums[nums.length - 1] : null;
   }
 
-  const voice = { rec: null, wanted: false };
+  // Principe : l'enfant peut parler librement (« euh… sept fois huit… cinquante-six »).
+  // - Dès que la bonne réponse apparaît, même dans un résultat intermédiaire, elle est validée.
+  // - Les bruits et phrases sans nombre sont ignorés en silence.
+  // - Un nombre faux ne compte que dans un résultat final (phrase terminée).
+  // - Une phrase déjà utilisée pour répondre est ignorée ensuite (évite qu'elle compte pour le calcul suivant).
+  const voice = { rec: null, wanted: false, used: -1 };
   function setHeard(txt, off) {
     $("heard").textContent = txt;
     $("mic").classList.toggle("off", !!off);
@@ -1181,13 +1192,11 @@ td.koc { color: var(--ko); font-weight: 800; }
     r.lang = "fr-FR";
     r.continuous = true;
     r.interimResults = true;
-    r.maxAlternatives = 3;
+    r.maxAlternatives = 5;
+    voice.used = -1;
     r.onresult = (ev) => {
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const res = ev.results[i];
-        if (res.isFinal) onVoiceFinal(res);
-        else if (game && !game.locked) setHeard("« " + res[0].transcript + " … »");
-      }
+      if (voice.rec !== r) return;
+      for (let i = ev.resultIndex; i < ev.results.length; i++) onVoiceResult(ev.results[i], i);
     };
     r.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
@@ -1198,18 +1207,36 @@ td.koc { color: var(--ko); font-weight: 800; }
         setHeard("Pas de connexion pour la voix : réponds avec le clavier.", true);
       }
     };
-    r.onend = () => { voice.rec = null; if (voice.wanted) setTimeout(() => { if (voice.wanted) voiceStart(); }, 200); };
+    r.onend = () => {
+      if (voice.rec === r) voice.rec = null;
+      if (voice.wanted) setTimeout(() => { if (voice.wanted) voiceStart(); }, 200);
+    };
     try { r.start(); voice.rec = r; } catch (e) { voice.rec = null; }
   }
   function voiceStop() {
     voice.wanted = false;
     if (voice.rec) { try { voice.rec.abort(); } catch (e) { /* ignoré */ } voice.rec = null; }
   }
-  function onVoiceFinal(res) {
-    if (!game || game.locked) return;
-    let n = null, said = res[0].transcript;
-    for (let i = 0; i < res.length && n === null; i++) { n = parseFrNumber(res[i].transcript); if (n !== null) said = res[i].transcript; }
-    if (n === null || n > 9999) { setHeard("Je n'ai pas compris « " + said.trim() + " », répète !"); return; }
+  function onVoiceResult(res, idx) {
+    if (!game || game.locked || idx <= voice.used) return;
+    const expected = game.seq[game.idx].answer;
+    let heard = "", wrong = null;
+    for (let j = 0; j < res.length; j++) {
+      const txt = res[j].transcript;
+      const nums = parseFrNumbers(txt).filter((x) => x <= 9999);
+      if (nums.indexOf(expected) >= 0) return voiceAnswer(expected, txt, idx);   // bonne réponse entendue : validée
+      if (nums.length && wrong === null) { wrong = nums[nums.length - 1]; heard = txt; }
+    }
+    if (!res.isFinal) {                         // phrase en cours : on montre juste ce qu'on entend
+      const t = res[0].transcript.trim();
+      if (t) setHeard("« " + t + " … »");
+      return;
+    }
+    if (wrong !== null) return voiceAnswer(wrong, heard, idx);   // phrase finie avec un nombre, mais pas le bon
+    setHeard("Je t'écoute…");                   // bruit ou phrase sans nombre : ignoré
+  }
+  function voiceAnswer(n, said, idx) {
+    voice.used = idx;
     setHeard("« " + said.trim() + " »");
     game.input = String(n);
     $("qAns").textContent = game.input;
@@ -1394,35 +1421,44 @@ td.koc { color: var(--ko); font-weight: 800; }
     const goodTimes = g.results.filter((r) => r.ok).map((r) => r.elapsed);
     const avg = goodTimes.length ? goodTimes.reduce((s, x) => s + x, 0) / goodTimes.length : 0;
 
-    // Enregistrement des essais (sert à l'analyse des tables)
-    g.results.forEach((r) => {
-      const L = k.facts[r.q.key] || (k.facts[r.q.key] = []);
-      L.push([r.ok ? 1 : 0, Math.round(r.elapsed * 10) / 10]);
-      if (L.length > 10) L.splice(0, L.length - 10);
-    });
-
+    // Séance « Revoir mes erreurs » : on vient de voir la correction, ce n'est pas une vraie évaluation.
+    // Rien n'est enregistré (ni note, ni historique, ni maîtrise des calculs) et on n'affiche pas de note.
+    const review = g.mode === "errors";
     let recMsg = "";
-    if (g.mode !== "errors") {
+    if (!review) {
+      // Enregistrement des essais (sert à l'analyse des tables)
+      g.results.forEach((r) => {
+        const L = k.facts[r.q.key] || (k.facts[r.q.key] = []);
+        L.push([r.ok ? 1 : 0, Math.round(r.elapsed * 10) / 10]);
+        if (L.length > 10) L.splice(0, L.length - 10);
+      });
       const key = g.type + "|" + g.mode + "|" + n + "|" + g.time;
       const prev = k.records[key] || 0;
       if (g.points > prev) {
         k.records[key] = g.points;
         recMsg = prev ? "🏆 Nouveau record ! (ancien : " + prev + " pts)" : "🏆 Premier record pour ces réglages !";
       } else if (prev) recMsg = "Record pour ces réglages : " + prev + " pts";
+      k.history.unshift({ d: Date.now(), type: g.type, mode: g.mode, n, time: g.time, good, note, pts: g.points });
+      if (k.history.length > 200) k.history.length = 200;
+      saveDb();
     }
-    k.history.unshift({ d: Date.now(), type: g.type, mode: g.mode, n, time: g.time, good, note, pts: g.points });
-    if (k.history.length > 200) k.history.length = 200;
-    saveDb();
 
+    $("rNoteBox").style.display = review ? "none" : "";
+    $("rPtsBox").style.display = review ? "none" : "";
+    $("rNoteBox").parentNode.classList.toggle("review", review);
+    $("rGoodLab").textContent = review ? "Erreurs corrigées" : "Bonnes réponses";
     $("rNote").innerHTML = fmtNote(note) + "<small>/20</small>";
     $("rPts").textContent = g.points;
     $("rGood").innerHTML = good + "<small>/" + n + "</small>";
-    $("rAvg").textContent = goodTimes.length
-      ? "Temps moyen par bonne réponse : " + fmtDec(avg) + " s (sur " + g.time + " s)" : "";
+    $("rAvg").textContent = review ? "Séance de révision : elle ne compte pas dans la note ni dans la progression."
+      : goodTimes.length ? "Temps moyen par bonne réponse : " + fmtDec(avg) + " s (sur " + g.time + " s)" : "";
     const stars = pct === 1 ? 3 : pct >= 0.75 ? 2 : pct >= 0.5 ? 1 : 0;
+    $("rStars").style.display = review ? "none" : "";
     $("rStars").innerHTML = [0, 1, 2].map((i) => '<span class="' + (i < stars ? "" : "off") + '">★</span>').join("");
-    $("rMsg").textContent = (pct === 1 ? "Parfait " : pct >= 0.75 ? "Très bien " : pct >= 0.5 ? "C'est bien " : "Courage ") +
-      k.name + (pct === 1 ? ", tout juste ! 🎉" : pct >= 0.75 ? ", continue comme ça !" : pct >= 0.5 ? ", encore un petit effort !" : ", on s'entraîne encore !");
+    $("rMsg").textContent = review
+      ? (pct === 1 ? "Bravo " + k.name + ", tu as corrigé toutes tes erreurs ! 👍" : "Encore " + (n - good) + " à revoir, " + k.name + " !")
+      : (pct === 1 ? "Parfait " : pct >= 0.75 ? "Très bien " : pct >= 0.5 ? "C'est bien " : "Courage ") +
+        k.name + (pct === 1 ? ", tout juste ! 🎉" : pct >= 0.75 ? ", continue comme ça !" : pct >= 0.5 ? ", encore un petit effort !" : ", on s'entraîne encore !");
     $("rRecord").textContent = recMsg;
 
     const rows = g.results.map((r, i) =>
@@ -1642,7 +1678,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   // =====================================================================
   applyTheme(kid() ? kid().settings.theme : "lagon");
   renderKids();
-  window.__tablo = { parseFrNumber };  // utile pour tester la reconnaissance
+  window.__tablo = { parseFrNumber, parseFrNumbers };  // utile pour tester la reconnaissance
 })();
 </script>
 </body>

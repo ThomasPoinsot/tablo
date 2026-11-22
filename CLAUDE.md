@@ -49,12 +49,13 @@ Kid = {
   settings: { type: "add"|"mul"|"dm", addTables: [0..10], mulTables: [2..10],
               dmKinds: {double, half}, dmParts: [1..3], count (10 | 20 | 40, constante COUNT_CHOICES), time (s),
               mode: "random"|"smart", voice: bool, theme: "lagon"|"bonbon"|"arcade" },
-  history: [{ d (timestamp), type, mode: "random"|"smart"|"errors", n, time, good, note, pts }],  // plus récent en premier, max 200
-  records: { "type|mode|n|time": points },  // pas de record en mode "errors"
+  history: [{ d (timestamp), type, mode: "random"|"smart", n, time, good, note, pts }],  // plus récent en premier, max 200
+  records: { "type|mode|n|time": points },
   facts:   { factKey: [[ok 0|1, secondes], ...] }  // 10 derniers essais par calcul, plus ancien en premier
 }
 ```
 
+- **« Revoir mes erreurs » (mode `"errors"`) n'enregistre rien** : ni historique, ni note, ni record, ni essais dans `facts` (l'enfant vient de voir la correction). L'écran de fin masque note, points et étoiles et affiche « Erreurs corrigées x/n ». `normalizeKid()` retire les anciennes séances `"errors"` de l'historique.
 - `normalizeKid()` complète les champs manquants. **Il faut le mettre à jour à chaque nouveau réglage**, pour rester compatible avec les anciennes sauvegardes et les imports.
 - Clés des faits :
   - additions : `add:T:B`, avec T = la table (0..10) et B entre 0 et 10 ;
@@ -98,8 +99,13 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 
 ## Voix (Web Speech API)
 
-- `webkitSpeechRecognition` en `fr-FR`, continu, avec résultats intermédiaires et redémarrage automatique sur `onend`. Seuls les résultats finaux valident une réponse.
-- `parseFrNumber()` renvoie le **dernier** nombre prononcé, écrit en chiffres ou en toutes lettres (quatre-vingt-dix-neuf, soixante et onze, mille, plus quelques homophones comme « sans » pour cent). Il est exposé sous `window.__tablo` pour les tests.
+- `webkitSpeechRecognition` en `fr-FR`, continu, avec résultats intermédiaires, 5 alternatives, et redémarrage automatique sur `onend`.
+- Tolérant au bavardage et au bruit (`onVoiceResult`) :
+  - si la bonne réponse apparaît dans n'importe quel nombre de n'importe quelle alternative, **même intermédiaire**, elle est validée tout de suite ;
+  - une phrase sans nombre est ignorée en silence (plus de « je n'ai pas compris ») ;
+  - un nombre faux ne compte que dans un résultat **final** ;
+  - `voice.used` mémorise l'index du résultat déjà utilisé : sa version finale tardive ne compte pas pour le calcul suivant.
+- `parseFrNumbers()` renvoie tous les nombres prononcés ; `parseFrNumber()` renvoie le **dernier** nombre prononcé, écrit en chiffres ou en toutes lettres (quatre-vingt-dix-neuf, soixante et onze, mille, plus quelques homophones comme « sans » pour cent). Il est exposé sous `window.__tablo` pour les tests.
 - Une réponse vocale retire 0,6 s au temps mesuré, pour compenser la latence de la reconnaissance.
 - Navigateurs : Chrome, Edge et Safari, mais pas Firefox. Chrome envoie l'audio aux serveurs de Google, donc il faut Internet.
 
@@ -122,7 +128,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v6`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v7`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
