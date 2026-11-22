@@ -238,7 +238,7 @@ body.playing .wrap { padding-top: max(14px, env(safe-area-inset-top)); }
   box-shadow: 0 3px 0 var(--line);
 }
 .key:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
-.key.ok { background: var(--ok); color: var(--ok-ink); box-shadow: 0 3px 0 color-mix(in srgb, var(--ok) 60%, black); }
+.key.zero { grid-column: span 2; }
 .key.del { color: var(--muted); }
 
 .countdown { text-align: center; font-size: 120px; font-weight: 800; color: var(--accent); padding: 60px 0 20px; }
@@ -460,7 +460,7 @@ td.koc { color: var(--ko); font-weight: 800; }
         Chaque bonne réponse rapporte <b>de 10 à 100 points</b> : plus tu réponds vite, plus tu gagnes de points.
         Enchaîne les bonnes réponses pour un <b>bonus combo</b> (+5 points par bonne réponse d'affilée, jusqu'à +50).
         Si le sablier se vide, c'est 0 point. La <b>note sur 20</b> compte seulement les bonnes réponses.
-        <br>Au clavier : tape le nombre puis <b>Entrée</b>.
+        <br>Pas besoin de valider : dès que tu as tapé tous les chiffres de ta réponse, elle est prise en compte.
       </div>
     </div>
   </section>
@@ -1384,14 +1384,17 @@ td.koc { color: var(--ko); font-weight: 800; }
     const a = $("qAns");
     a.textContent = game.input;
     a.classList.toggle("empty", game.input === "");
+    // Validation automatique dès que la réponse a autant de chiffres que la bonne réponse (juste ou fausse).
+    if (game.input.length >= String(game.seq[game.idx].answer).length) answer(false);
   }
 
   (() => {
     const kp = $("keypad");
-    ["7","8","9","4","5","6","1","2","3","del","0","ok"].forEach((k) => {
+    // Pas de touche OK : la réponse est validée dès qu'elle a le bon nombre de chiffres (cf. pressKey).
+    ["7","8","9","4","5","6","1","2","3","0","del"].forEach((k) => {
       const b = document.createElement("button");
-      b.className = "key" + (k === "ok" ? " ok" : k === "del" ? " del" : "");
-      b.textContent = k === "del" ? "⌫" : k === "ok" ? "OK" : k;
+      b.className = "key" + (k === "0" ? " zero" : k === "del" ? " del" : "");
+      b.textContent = k === "del" ? "⌫" : k;
       b.addEventListener("pointerdown", (e) => { e.preventDefault(); pressKey(k); });
       kp.appendChild(b);
     });
