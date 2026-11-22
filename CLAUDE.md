@@ -46,7 +46,7 @@ Clé `tablo.v1`. L'ancienne clé `basimaths.v2` est relue automatiquement si la 
 db = { kids: [Kid], currentId: "id" }
 Kid = {
   id, name (≤ 20 car.), avatar (emoji de AVATARS), created,
-  settings: { type: "add"|"mul"|"dm", addTables: [0..10], mulTables: [1..10],
+  settings: { type: "add"|"mul"|"dm", addTables: [0..10], mulTables: [2..10],
               dmKinds: {double, half}, dmParts: [1..3], count, time (s),
               mode: "random"|"smart", voice: bool, theme: "lagon"|"bonbon"|"arcade" },
   history: [{ d (timestamp), type, mode: "random"|"smart"|"errors", n, time, good, note, pts }],  // plus récent en premier, max 200
@@ -58,7 +58,7 @@ Kid = {
 - `normalizeKid()` complète les champs manquants. **Il faut le mettre à jour à chaque nouveau réglage**, pour rester compatible avec les anciennes sauvegardes et les imports.
 - Clés des faits :
   - additions : `add:T:B`, avec T = la table (0..10) et B entre 0 et 10 ;
-  - multiplications : `mul:T:B`, avec B entre 1 et 10 ;
+  - multiplications : `mul:T:B`, avec T et B entre 2 et 10 (constante `MUL_RANGE`) ;
   - doubles et moitiés : `double:N` et `half:N`.
 - Pour l'addition et la multiplication, l'affichage inverse les termes une fois sur deux (`finalize`). La stat reste rangée sous la table choisie.
 - Export : fichier JSON `{ app: "Tablo", version: 1, exported, kids, currentId }`. Import : `parseDb()` valide le fichier, puis il remplace tout après confirmation.
@@ -122,7 +122,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v4`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v5`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
@@ -143,6 +143,7 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 
 - Le stockage passe par localStorage et pas par des cookies : les cookies sont limités à 4 Ko et Chrome ne les garde pas en `file://`. Chaque appareil, et même l'appli installée sur iOS par rapport à Safari, a son propre stockage. Le transfert se fait par export / import.
 - Un seul type de calcul par séance (pas de mélange), à la demande de l'utilisateur, par souci de clarté.
+- **La table du 1 est exclue**, à la demande de l'utilisateur : ni table ×1, ni calcul « × 1 » dans les autres tables. Tout passe par la constante `MUL_RANGE = range(2, 10)`, et `normalizeKid()` retire le 1 des anciens réglages. Les anciens essais `mul:1:*` et `mul:*:1` restent dans les sauvegardes, mais ne sont plus affichés.
 - Responsive : téléphone, tablette et PC sont tous testés. Sur téléphone, l'écran de jeu doit tenir sans défiler (media queries `max-height`, unités `dvh`). Les petits écrans affichent des libellés courts (`.tl-long` et `.tl-short`).
 - `color-mix()`, `dvh` et `aspect-ratio` sont simplement ignorés par les vieux navigateurs : seul l'effet visuel est perdu, rien ne plante. Éviter en revanche le JS récent (`?.`, `??`, `.at()`, `structuredClone`…) : l'appli tourne sur une tablette Android 8.1 avec un Chrome figé.
 - Le header a `z-index: 40` pour que le menu ⋮ passe au-dessus des écrans animés : l'animation `fade` utilise `transform`, ce qui crée un contexte d'empilement.

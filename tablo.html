@@ -660,10 +660,13 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (m) m.content = THEMES[t].meta;
   }
 
+  // Tables de multiplication proposées (la table du 1 est volontairement exclue, y compris les « × 1 »)
+  const MUL_RANGE = range(2, 10);
+
   const DEFAULT_SETTINGS = {
     type: "mul",
     addTables: range(0, 10),
-    mulTables: range(2, 10),
+    mulTables: MUL_RANGE.slice(),
     dmKinds: { double: true, half: true },
     dmParts: [1],
     count: 10,
@@ -686,6 +689,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (!THEMES[s.theme]) s.theme = "lagon";
     if (!MODE_LABEL[s.mode] || s.mode === "errors") s.mode = "random";
     ["addTables", "mulTables", "dmParts"].forEach((f) => { if (!Array.isArray(s[f])) s[f] = clone(DEFAULT_SETTINGS[f]); });
+    s.mulTables = s.mulTables.filter((t) => MUL_RANGE.includes(t));
     k.settings = s;
     k.name = String(k.name).slice(0, 20);
     if (!k.avatar) k.avatar = AVATARS[0];
@@ -896,7 +900,7 @@ td.koc { color: var(--ko); font-weight: 800; }
       range(0, 10).forEach((t) => range(0, 10).forEach((b) =>
         out.push({ key: "add:" + t + ":" + b, type: "add", a: t, b, answer: t + b, group: "add" + t, row: t, col: b })));
     } else if (type === "mul") {
-      range(1, 10).forEach((t) => range(1, 10).forEach((b) =>
+      MUL_RANGE.forEach((t) => MUL_RANGE.forEach((b) =>
         out.push({ key: "mul:" + t + ":" + b, type: "mul", a: t, b, answer: t * b, group: "mul" + t, row: t, col: b })));
     } else {
       ["double", "half"].forEach((kind) => [1, 2, 3].forEach((p) => DM_SHEET[kind][p].forEach((n) =>
@@ -906,7 +910,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   }
   function groupsOf(type) {
     if (type === "add") return range(0, 10).map((t) => ({ id: "add" + t, label: "Table +" + t, value: t }));
-    if (type === "mul") return range(1, 10).map((t) => ({ id: "mul" + t, label: "Table ×" + t, value: t }));
+    if (type === "mul") return MUL_RANGE.map((t) => ({ id: "mul" + t, label: "Table ×" + t, value: t }));
     const g = [];
     [["double", "Doubles"], ["half", "Moitiés"]].forEach(([kind, name]) =>
       [1, 2, 3].forEach((p) => g.push({ id: kind + p, label: name + " · partie " + p, kind, part: p })));
@@ -1005,7 +1009,7 @@ td.koc { color: var(--ko); font-weight: 800; }
 
     makeChips($("chipsAdd"), range(0, 10).map((n) => ({ value: n, label: "+" + n })),
       (v) => s.addTables.includes(v), (v) => toggleIn(s.addTables, v), "add");
-    makeChips($("chipsMul"), range(1, 10).map((n) => ({ value: n, label: "×" + n })),
+    makeChips($("chipsMul"), MUL_RANGE.map((n) => ({ value: n, label: "×" + n })),
       (v) => s.mulTables.includes(v), (v) => toggleIn(s.mulTables, v), "mul");
     makeChips($("chipsDmKind"), [{ value: "double", label: "Doubles" }, { value: "half", label: "Moitiés" }],
       (v) => s.dmKinds[v], (v) => { s.dmKinds[v] = !s.dmKinds[v]; }, "dm");
@@ -1055,7 +1059,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     S().type = el.dataset.type; renderSetup();
   }));
   document.querySelectorAll("[data-all]").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.all === "add") S().addTables = range(0, 10); else S().mulTables = range(1, 10);
+    if (b.dataset.all === "add") S().addTables = range(0, 10); else S().mulTables = MUL_RANGE.slice();
     renderSetup();
   }));
   document.querySelectorAll("[data-none]").forEach((b) => b.addEventListener("click", () => {
@@ -1494,7 +1498,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     let html = "";
     if (progType === "add" || progType === "mul") {
       const sym = progType === "add" ? "+" : "×";
-      const rows = progType === "add" ? range(0, 10) : range(1, 10);
+      const rows = progType === "add" ? range(0, 10) : MUL_RANGE;
       html = '<div class="hm" style="grid-template-columns:auto repeat(' + rows.length + ',1fr)">';
       html += '<div class="hh">' + sym + "</div>" + rows.map((c) => '<div class="hh">' + c + "</div>").join("");
       rows.forEach((r) => {
