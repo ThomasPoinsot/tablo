@@ -945,9 +945,11 @@ td.koc { color: var(--ko); font-weight: 800; }
   // =====================================================================
   //  Maîtrise : analyse de tous les essais
   // =====================================================================
-  // Chaque essai est stocké [ok (0/1), temps en s]. On garde les 10 derniers par calcul.
+  // Chaque essai est stocké [ok (0/1), temps en s], ou [ok, temps, 1] s'il vient de « Revoir mes erreurs ».
+  // On garde les 10 derniers par calcul.
   function attemptScore(at) {
     if (!at[0]) return 0;
+    if (at[2]) return 0.5;         // juste en révision : la correction venait d'être montrée, ça compte à moitié
     const e = at[1];
     if (e <= 3) return 1;          // réponse automatique
     if (e >= 10) return 0.5;       // juste mais très lent
@@ -962,11 +964,12 @@ td.koc { color: var(--ko); font-weight: 800; }
   }
   function factStats(k, key) {
     const L = k.facts[key] || [];
-    const okL = L.filter((a) => a[0]);
+    const okL = L.filter((a) => a[0] && !a[2]);   // temps moyen : hors révisions
+    const last = L.length ? L[L.length - 1] : null;
     return {
-      m: mastery(L), n: L.length, ok: okL.length,
+      m: mastery(L), n: L.length, ok: L.filter((a) => a[0]).length,
       avg: okL.length ? okL.reduce((x, a) => x + a[1], 0) / okL.length : null,
-      lastOk: L.length ? !!L[L.length - 1][0] : null
+      lastOk: last ? !!last[0] : null, lastReview: !!(last && last[2])
     };
   }
   function level(m) {
@@ -1109,7 +1112,8 @@ td.koc { color: var(--ko); font-weight: 800; }
     const m = mastery(L);
     if (m === null) return 1;                       // jamais vu : priorité haute
     let w = Math.pow(1 - m, 1.5) + 0.06;            // acquis : petite chance (révision)
-    if (!L[L.length - 1][0]) w += 0.6;              // raté la dernière fois : bonus
+    const real = L.filter((a) => !a[2]);            // une révision réussie n'efface pas le dernier raté
+    if (real.length && !real[real.length - 1][0]) w += 0.6;   // raté la dernière fois : bonus
     return w;
   }
   function smartSequence(pool, n, k) {
@@ -1422,16 +1426,18 @@ td.koc { color: var(--ko); font-weight: 800; }
     const avg = goodTimes.length ? goodTimes.reduce((s, x) => s + x, 0) / goodTimes.length : 0;
 
     // Séance « Revoir mes erreurs » : on vient de voir la correction, ce n'est pas une vraie évaluation.
-    // Rien n'est enregistré (ni note, ni historique, ni maîtrise des calculs) et on n'affiche pas de note.
+    // Pas de note, ni d'historique des séances, ni de record. Les essais comptent quand même pour
+    // chaque calcul, marqués « révision » (une bonne réponse y vaut moitié, cf. attemptScore).
     const review = g.mode === "errors";
+    g.results.forEach((r) => {
+      const L = k.facts[r.q.key] || (k.facts[r.q.key] = []);
+      const at = [r.ok ? 1 : 0, Math.round(r.elapsed * 10) / 10];
+      if (review) at.push(1);
+      L.push(at);
+      if (L.length > 10) L.splice(0, L.length - 10);
+    });
     let recMsg = "";
     if (!review) {
-      // Enregistrement des essais (sert à l'analyse des tables)
-      g.results.forEach((r) => {
-        const L = k.facts[r.q.key] || (k.facts[r.q.key] = []);
-        L.push([r.ok ? 1 : 0, Math.round(r.elapsed * 10) / 10]);
-        if (L.length > 10) L.splice(0, L.length - 10);
-      });
       const key = g.type + "|" + g.mode + "|" + n + "|" + g.time;
       const prev = k.records[key] || 0;
       if (g.points > prev) {
@@ -1440,8 +1446,8 @@ td.koc { color: var(--ko); font-weight: 800; }
       } else if (prev) recMsg = "Record pour ces réglages : " + prev + " pts";
       k.history.unshift({ d: Date.now(), type: g.type, mode: g.mode, n, time: g.time, good, note, pts: g.points });
       if (k.history.length > 200) k.history.length = 200;
-      saveDb();
     }
+    saveDb();
 
     $("rNoteBox").style.display = review ? "none" : "";
     $("rPtsBox").style.display = review ? "none" : "";
@@ -1450,7 +1456,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("rNote").innerHTML = fmtNote(note) + "<small>/20</small>";
     $("rPts").textContent = g.points;
     $("rGood").innerHTML = good + "<small>/" + n + "</small>";
-    $("rAvg").textContent = review ? "Séance de révision : elle ne compte pas dans la note ni dans la progression."
+    $("rAvg").textContent = review ? "Séance de révision : pas de note, mais chaque calcul réussi compte un peu pour tes tables."
       : goodTimes.length ? "Temps moyen par bonne réponse : " + fmtDec(avg) + " s (sur " + g.time + " s)" : "";
     const stars = pct === 1 ? 3 : pct >= 0.75 ? 2 : pct >= 0.5 ? 1 : 0;
     $("rStars").style.display = review ? "none" : "";
@@ -1572,7 +1578,7 @@ td.koc { color: var(--ko); font-weight: 800; }
         '<span class="tag" style="background:' + lv.color + '">' + lv.label + "</span><br>" +
         (s.n ? s.n + " essai" + (s.n > 1 ? "s" : "") + " récent" + (s.n > 1 ? "s" : "") + ", " + s.ok + " réussi" + (s.ok > 1 ? "s" : "") +
           (s.avg !== null ? " · temps moyen " + fmtDec(s.avg) + " s" : "") +
-          " · dernière fois : " + (s.lastOk ? "juste ✅" : "raté ❌") +
+          " · dernière fois : " + (s.lastOk ? "juste ✅" : "raté ❌") + (s.lastReview ? " (en révision)" : "") +
           " · maîtrise " + Math.round(s.m * 100) + " %"
           : "Ce calcul n'a pas encore été proposé.");
     }));

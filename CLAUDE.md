@@ -51,11 +51,11 @@ Kid = {
               mode: "random"|"smart", voice: bool, theme: "lagon"|"bonbon"|"arcade" },
   history: [{ d (timestamp), type, mode: "random"|"smart", n, time, good, note, pts }],  // plus récent en premier, max 200
   records: { "type|mode|n|time": points },
-  facts:   { factKey: [[ok 0|1, secondes], ...] }  // 10 derniers essais par calcul, plus ancien en premier
+  facts:   { factKey: [[ok 0|1, secondes, (1 si révision)], ...] }  // 10 derniers essais par calcul, plus ancien en premier
 }
 ```
 
-- **« Revoir mes erreurs » (mode `"errors"`) n'enregistre rien** : ni historique, ni note, ni record, ni essais dans `facts` (l'enfant vient de voir la correction). L'écran de fin masque note, points et étoiles et affiche « Erreurs corrigées x/n ». `normalizeKid()` retire les anciennes séances `"errors"` de l'historique.
+- **« Revoir mes erreurs » (mode `"errors"`) ne compte pas comme une séance** : ni note, ni historique, ni record (l'enfant vient de voir la correction). Ses essais vont quand même dans `facts`, marqués `[ok, temps, 1]` : une bonne réponse y vaut 0,5 dans `attemptScore`, elle n'entre pas dans le temps moyen, et elle n'annule pas le bonus « raté la dernière fois » du mode intelligent. L'écran de fin masque note, points et étoiles et affiche « Erreurs corrigées x/n ». `normalizeKid()` retire les anciennes séances `"errors"` de l'historique.
 - `normalizeKid()` complète les champs manquants. **Il faut le mettre à jour à chaque nouveau réglage**, pour rester compatible avec les anciennes sauvegardes et les imports.
 - Clés des faits :
   - additions : `add:T:B`, avec T = la table (0..10) et B entre 0 et 10 ;
@@ -84,6 +84,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - **Note sur 20** : bonnes réponses / total × 20, arrondi au demi-point. Étoiles : 3 si 100 %, 2 si ≥ 75 %, 1 si ≥ 50 %.
 - **Score d'un essai** (`attemptScore`) :
   - faux : 0 ;
+  - juste en révision (« Revoir mes erreurs ») : 0,5 ;
   - juste en 3 s ou moins : 1 ;
   - juste entre 3 et 10 s : linéaire de 1 à 0,5 ;
   - juste en 10 s ou plus : 0,5.
@@ -128,7 +129,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v7`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v8`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
