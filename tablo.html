@@ -534,7 +534,7 @@ td.koc { color: var(--ko); font-weight: 800; }
           <div class="qtype" id="qType">Addition</div>
           <div class="question" id="qText">7 + 8</div>
           <div class="answer empty" id="qAns"></div>
-          <div class="mic" id="mic"><span class="dot"></span><span id="heard">Je t'écoute…</span></div>
+          <div class="mic" id="mic"><span class="dot"></span><span id="heard">Dis « ça fait … »</span></div>
           <div class="feedback" id="qFb"></div>
         </div>
       </div>
@@ -587,7 +587,7 @@ td.koc { color: var(--ko); font-weight: 800; }
 
 <dialog id="dlgMic">
   <h3>🎤 Test du micro</h3>
-  <p>Dis un nombre (par exemple « cinquante-six »). On voit ici tout ce que le navigateur entend, au fil de l'eau.</p>
+  <p>Dis une petite phrase avec un nombre (par exemple « ça fait cinquante-six »). On voit ici tout ce que le navigateur entend, au fil de l'eau.</p>
   <div class="mictest-now" id="micNow">…</div>
   <pre class="mictest-log" id="micLog"></pre>
   <div class="dlgbtns"><button type="button" class="btn2" id="micCopy">📋 Copier le journal</button><button type="button" class="btn2 primary" id="micClose">Fermer</button></div>
@@ -1069,7 +1069,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("voiceInfo").innerHTML = !SR
       ? "La réponse à la voix n'est pas disponible dans ce navigateur (utilise <b>Chrome</b>, <b>Edge</b> ou <b>Safari</b>)."
       : s.voice
-        ? "Dis simplement le nombre (« cinquante-six »), il est validé tout seul. Le clavier reste utilisable. Le navigateur demandera l'accès au micro ; dans Chrome, la reconnaissance a besoin d'Internet."
+        ? "Réponds par une <b>petite phrase</b> : « ça fait cinquante-six ». Un nombre dit tout seul est souvent ignoré par la reconnaissance. La bonne réponse est validée dès qu'elle est entendue ; le clavier reste utilisable. Le navigateur demandera l'accès au micro ; dans Chrome, la reconnaissance a besoin d'Internet."
         : "Tape la réponse avec le pavé numérique ou le clavier.";
 
     const anyTable = pool.length > 0;
@@ -1238,6 +1238,9 @@ td.koc { color: var(--ko); font-weight: 800; }
   }
 
   const voice = { rec: null, wanted: false, used: -1 };
+  // La reconnaissance de Google ignore souvent un mot isolé très court (« seize ») mais comprend bien une phrase :
+  // on invite donc l'enfant à répondre par « ça fait … ».
+  const VOICE_PROMPT = "Dis « ça fait … »";
   function setHeard(txt, off) {
     $("heard").textContent = txt;
     $("mic").classList.toggle("off", !!off);
@@ -1289,7 +1292,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (!t) return;
     // Pas la bonne réponse : on montre ce qui a été entendu, sans rien valider. L'enfant peut redire.
     if (!res.isFinal) setHeard("« " + t + " … »");
-    else setHeard(parseFrNumbers(t).length ? "« " + t + " » ? Redis !" : "Je t'écoute…");
+    else setHeard(parseFrNumbers(t).length ? "« " + t + " » ? Redis !" : VOICE_PROMPT);
   }
   function voiceAnswer(n, said, idx) {
     voice.used = idx;
@@ -1376,8 +1379,8 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("gPts").textContent = "0 pts";
     $("gCombo").style.visibility = "hidden";
     $("mic").classList.toggle("show", game.voice);
-    $("cdHint").textContent = game.voice ? "🎤 Autorise le micro si le navigateur le demande" : "";
-    if (game.voice) { setHeard("Je t'écoute…"); voiceStart(); }
+    $("cdHint").textContent = game.voice ? "🎤 Réponds par une petite phrase : « ça fait seize »" : "";
+    if (game.voice) { setHeard(VOICE_PROMPT); voiceStart(); }
     show("scrCount");
     let n = 3;
     $("cdNum").textContent = n;
@@ -1404,7 +1407,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("qText").classList.toggle("words", q.words);
     $("qFb").textContent = ""; $("qFb").className = "feedback";
     $("qAns").className = "answer empty"; $("qAns").textContent = "";
-    if (game.voice && voice.wanted) setHeard("Je t'écoute…");
+    if (game.voice && voice.wanted) setHeard(VOICE_PROMPT);
     game.start = performance.now();
     loop();
   }
