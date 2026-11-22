@@ -102,10 +102,12 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 
 ## Voix (Web Speech API)
 
-- `webkitSpeechRecognition` en `fr-FR`, résultats intermédiaires, 5 alternatives. Continu sur PC/iOS ; **sur Android, sessions courtes** (`continuous = false`) relancées aussitôt sur `onend`, plus réactives.
+- `webkitSpeechRecognition` en `fr-FR`, continu, résultats intermédiaires, 5 alternatives, relancé sur `onend`. **Essayé puis abandonné** : sessions courtes (`continuous = false`) sur Android et relance de l'écoute à chaque réponse. Sur la tablette Android 8.1, ça ne marchait plus qu'une fois sur 5 (micro sourd pendant les relances).
 - **Seule la bonne réponse est validée à la voix** (`onVoiceResult`) : dès qu'elle apparaît dans n'importe quelle alternative, même intermédiaire. Un nombre faux ou mal reconnu est seulement affiché (« « 54 » ? Redis ! »), le sablier continue ; s'il se vide, c'est une erreur.
 - Tolérance (`voiceCandidates` / `voiceHeardExpected`, exposé dans `window.__tablo`) : sons proches `VOICE_ALIASES` (oui→huit, si→six, cette→sept, vin→vingt, sans→cent…) et combinaisons de nombres voisins (« 50 6 » → 56, « 5 6 » → 56, « 300 50 » → 350). « de » est neutralisé pour ne pas compter 2 dans « moitié de… ». Éviter d'ajouter des mots courants comme alias.
-- `voiceRestart()` est appelé à chaque réponse : l'écoute en cours est abandonnée et une neuve démarre pendant la pause, pour qu'aucune fin de phrase ne déborde sur le calcul suivant (`voice.rec !== r` filtre les anciens événements).
+- `voice.used` mémorise l'index du résultat déjà utilisé : sa version finale tardive ne compte pas pour le calcul suivant.
+- `parseFrNumbers` lit les textes mixtes (« cinquante 6 » → 50, 6, puis recollés en 56 par `voiceCandidates`).
+- **Test du micro** (menu ⋮ → « 🎤 Tester le micro », `dlgMic`) : journal horodaté de tous les événements (start, audiostart, speechstart, résultats partiels/finaux avec alternatives et nombres reconnus, erreurs, end) et bouton « Copier le journal ». C'est l'outil pour diagnostiquer un appareil à distance : demander à l'utilisateur de coller le journal.
 - `parseFrNumbers()` renvoie tous les nombres prononcés ; `parseFrNumber()` renvoie le **dernier** nombre prononcé, écrit en chiffres ou en toutes lettres (quatre-vingt-dix-neuf, soixante et onze, mille, plus quelques homophones comme « sans » pour cent). Il est exposé sous `window.__tablo` pour les tests.
 - Une réponse vocale retire 0,6 s au temps mesuré, pour compenser la latence de la reconnaissance.
 - Navigateurs : Chrome, Edge et Safari, mais pas Firefox. Chrome envoie l'audio aux serveurs de Google, donc il faut Internet.
@@ -129,7 +131,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v12`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v13`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.

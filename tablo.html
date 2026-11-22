@@ -119,6 +119,8 @@ h2.flex { display: flex; justify-content: space-between; align-items: center; ga
 .savenote { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
 dialog { border: 0; border-radius: 20px; padding: 22px; background: var(--card); color: var(--ink); width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.mictest-now { font-size: 26px; font-weight: 900; text-align: center; padding: 10px; border-radius: 14px; background: var(--chip); margin-bottom: 10px; min-height: 1.4em; }
+.mictest-log { font-size: 11px; line-height: 1.35; max-height: 38vh; overflow: auto; background: var(--chip); border-radius: 12px; padding: 8px; margin: 0 0 12px; white-space: pre-wrap; word-break: break-word; }
 dialog::backdrop { background: rgba(20,22,30,.45); }
 dialog h3 { margin: 0 0 14px; font-size: 20px; }
 dialog ol { margin: 6px 0 12px; padding-left: 22px; line-height: 1.6; }
@@ -376,6 +378,7 @@ td.koc { color: var(--ko); font-weight: 800; }
         <div class="menu" id="menu" hidden>
           <button id="btnExport">💾 Exporter la sauvegarde</button>
           <button id="btnImport">📂 Importer une sauvegarde</button>
+          <button id="btnMicTest">🎤 Tester le micro</button>
           <div class="menunote">Profils et résultats sont enregistrés automatiquement dans ce navigateur. L'export crée un fichier <b>.json</b> pour garder une copie ou passer sur un autre appareil.</div>
         </div>
       </div>
@@ -580,6 +583,14 @@ td.koc { color: var(--ko); font-weight: 800; }
       <button type="submit" class="btn2 primary">Enregistrer</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="dlgMic">
+  <h3>🎤 Test du micro</h3>
+  <p>Dis un nombre (par exemple « cinquante-six »). On voit ici tout ce que le navigateur entend, au fil de l'eau.</p>
+  <div class="mictest-now" id="micNow">…</div>
+  <pre class="mictest-log" id="micLog"></pre>
+  <div class="dlgbtns"><button type="button" class="btn2" id="micCopy">📋 Copier le journal</button><button type="button" class="btn2 primary" id="micClose">Fermer</button></div>
 </dialog>
 
 <dialog id="dlgInstall">
@@ -1147,13 +1158,15 @@ td.koc { color: var(--ko); font-weight: 800; }
   function parseFrNumbers(txt) {
     const t = String(txt || "").toLowerCase().replace(/[.,!?;:]/g, " ");
     const digits = t.match(/\d{1,3}(?:[   ]\d{3})+|\d+/g);
-    if (digits) return digits.map((d) => parseInt(d.replace(/\D/g, ""), 10));
-    const tokens = t.replace(/[-'’]/g, " ").split(/\s+/).filter(Boolean);
+    // Les groupes de chiffres (« 1 000 ») sont recollés, puis lus comme des mots : « cinquante 6 » → 50, 6.
+    const t2 = digits ? t.replace(/\d{1,3}(?:[\s\u00a0\u202f]\d{3})+/g, (g) => g.replace(/\D/g, "")) : t;
+    const tokens = t2.replace(/[-'’]/g, " ").split(/\s+/).filter(Boolean);
     const nums = [];
     let total = 0, cur = 0, started = false;
     const flush = () => { if (started) nums.push(total + cur); total = 0; cur = 0; started = false; };
     for (const w of tokens) {
       if (w === "et") continue;
+      if (/^\d+$/.test(w)) { flush(); nums.push(parseInt(w, 10)); continue; }
       if (!(w in WORDS)) { flush(); continue; }
       const v = WORDS[w];
       if (v === 1000) { total += (cur || 1) * 1000; cur = 0; started = true; continue; }
@@ -1183,8 +1196,8 @@ td.koc { color: var(--ko); font-weight: 800; }
   // - Tolérance aux sons proches (« oui » pour huit, « si » pour six, « 50 6 » pour 56…), cf. voiceHeardExpected.
   // - Rien d'autre n'est jamais validé : un nombre faux ou mal reconnu est juste affiché, le sablier continue
   //   et l'enfant peut redire. S'il ne trouve pas, c'est « temps écoulé ».
-  // - Une écoute neuve est relancée pendant la pause entre deux calculs : pas de reste de la phrase précédente,
-  //   et sur Android (où l'écoute continue répond mal) des sessions courtes, plus réactives.
+  // - Écoute continue (relancer l'écoute rend le micro sourd 1 à 2 s sur Android : à éviter).
+  // - Une phrase déjà utilisée pour répondre (voice.used) ne compte pas pour le calcul suivant.
   const VOICE_ALIASES = {
     oui: "huit", ouie: "huit", wit: "huit", ui: "huit", huitre: "huit",
     si: "six", scie: "six", cis: "six", sis: "six",
@@ -1225,7 +1238,6 @@ td.koc { color: var(--ko); font-weight: 800; }
   }
 
   const voice = { rec: null, wanted: false, used: -1 };
-  const VOICE_ANDROID = /Android/i.test(navigator.userAgent);
   function setHeard(txt, off) {
     $("heard").textContent = txt;
     $("mic").classList.toggle("off", !!off);
@@ -1236,7 +1248,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (voice.rec) return;
     const r = new SR();
     r.lang = "fr-FR";
-    r.continuous = !VOICE_ANDROID;     // Android : sessions courtes relancées aussitôt, plus réactives
+    r.continuous = true;
     r.interimResults = true;
     r.maxAlternatives = 5;
     voice.used = -1;
@@ -1260,14 +1272,6 @@ td.koc { color: var(--ko); font-weight: 800; }
       if (voice.wanted) setTimeout(() => { if (voice.wanted) voiceStart(); }, 50);
     };
     try { r.start(); voice.rec = r; } catch (e) { voice.rec = null; }
-  }
-  // Abandonne l'écoute en cours (et ce qu'elle avait entendu) et en relance une neuve.
-  function voiceRestart() {
-    if (!voice.wanted) return;
-    const r = voice.rec;
-    voice.rec = null;
-    if (r) { try { r.abort(); } catch (e) { /* ignoré */ } }
-    voiceStart();
   }
   function voiceStop() {
     voice.wanted = false;
@@ -1295,6 +1299,63 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("qAns").classList.remove("empty");
     answer(false, true);
   }
+
+  // Test du micro (menu ⋮) : journal en direct des événements de la reconnaissance, pour diagnostiquer un appareil.
+  const micTest = { rec: null, t0: 0, lines: [] };
+  function micLog(txt) {
+    micTest.lines.push(((Date.now() - micTest.t0) / 1000).toFixed(2) + " s  " + txt);
+    if (micTest.lines.length > 200) micTest.lines.shift();
+    $("micLog").textContent = micTest.lines.slice().reverse().join("\n");
+  }
+  function micTestStop() {
+    const r = micTest.rec;
+    micTest.rec = null;
+    if (r) { try { r.abort(); } catch (e) { /* ignoré */ } }
+  }
+  function micTestStart() {
+    const r = new SR();
+    r.lang = "fr-FR"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 5;
+    ["start", "audiostart", "soundstart", "speechstart", "speechend", "soundend", "audioend"].forEach((ev) => {
+      r["on" + ev] = () => { if (micTest.rec === r) micLog(ev); };
+    });
+    r.onresult = (ev) => {
+      if (micTest.rec !== r) return;
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const res = ev.results[i], alts = [];
+        for (let j = 0; j < res.length; j++) alts.push("« " + res[j].transcript.trim() + " »");
+        const nums = voiceCandidates(res[0].transcript);
+        micLog("#" + i + (res.isFinal ? " FINAL " : " partiel ") + alts.join(" / ") + (nums.length ? "  → " + nums.join(", ") : ""));
+        $("micNow").textContent = res[0].transcript.trim() || "…";
+      }
+    };
+    r.onerror = (e) => { if (micTest.rec === r) micLog("ERREUR " + e.error); };
+    r.onend = () => {
+      if (micTest.rec !== r) return;
+      micLog("end (relance)");
+      micTest.rec = null;
+      if ($("dlgMic").open) setTimeout(() => { if ($("dlgMic").open && !micTest.rec) micTestStart(); }, 50);
+    };
+    micTest.rec = r;
+    try { r.start(); } catch (e) { micLog("start impossible : " + e.message); micTest.rec = null; }
+  }
+  $("btnMicTest").addEventListener("click", () => {
+    setMenu(false);
+    micTest.t0 = Date.now(); micTest.lines = [];
+    $("micNow").textContent = "…";
+    $("micLog").textContent = "";
+    micLog("Appareil : " + navigator.userAgent + (window.__androidVersion ? " (Android " + window.__androidVersion + ")" : ""));
+    $("dlgMic").showModal();
+    if (!SR) { micLog("Pas de reconnaissance vocale dans ce navigateur."); return; }
+    micTestStart();
+  });
+  $("dlgMic").addEventListener("close", micTestStop);
+  $("micClose").addEventListener("click", () => $("dlgMic").close());
+  $("micCopy").addEventListener("click", () => {
+    const txt = micTest.lines.join("\n");
+    const done = () => { $("micCopy").textContent = "✅ Copié"; setTimeout(() => { $("micCopy").textContent = "📋 Copier le journal"; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => window.prompt("Copie ce texte :", txt));
+    else window.prompt("Copie ce texte :", txt);
+  });
 
   // =====================================================================
   //  Partie
@@ -1417,7 +1478,6 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (game.streak >= 2) { c.textContent = "Combo ×" + game.streak; c.style.visibility = "visible"; }
     else c.style.visibility = "hidden";
 
-    if (game.voice) voiceRestart();   // écoute neuve prête pour le calcul suivant
     game.results.push({ q, given, ok, timedOut, elapsed, points: pts.total });
     game.idx++;
     pendingTimeout = setTimeout(nextQuestion, ok ? 900 : 2000);
@@ -1450,7 +1510,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   })();
 
   document.addEventListener("keydown", (e) => {
-    if ($("dlgKid").open || $("dlgInstall").open || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+    if ($("dlgKid").open || $("dlgInstall").open || $("dlgMic").open || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
     if (!$("scrGame").classList.contains("active")) {
       if (e.key === "Enter" && $("scrSetup").classList.contains("active") && !$("btnGo").disabled) {
         e.preventDefault(); $("btnGo").click();

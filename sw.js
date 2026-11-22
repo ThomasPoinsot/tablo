@@ -1,5 +1,5 @@
 // Tablo – service worker : fonctionne hors connexion une fois installé.
-const CACHE = "tablo-v12";
+const CACHE = "tablo-v13";
 const FILES = ["./", "./index.html", "./tablo.html", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
