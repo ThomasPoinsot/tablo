@@ -80,6 +80,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 
 ## Algorithmes
 
+- **Temps de réponse** : au clavier, une bonne réponse est chronométrée à l'appui sur son **premier chiffre** (`game.firstT`, remis à zéro si le premier chiffre est effacé ou changé), pour ne pas pénaliser la vitesse de frappe. Une réponse fausse garde le temps jusqu'à OK. À la voix : temps de reconnaissance − 0,6 s.
 - **Points d'une bonne réponse** : `round(10 + 90 × temps restant / temps alloué)`, plus un combo de `min(série − 1, 10) × 5`. Une erreur ou un temps écoulé donne 0 point et remet la série à zéro.
 - **Note sur 20** : bonnes réponses / total × 20, arrondi au demi-point. Étoiles : 3 si 100 %, 2 si ≥ 75 %, 1 si ≥ 50 %.
 - **Score d'un essai** (`attemptScore`) :
@@ -129,7 +130,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v8`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v9`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.

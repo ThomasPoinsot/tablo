@@ -1285,6 +1285,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (game.idx >= game.seq.length) return endGame();
     const q = game.seq[game.idx];
     game.input = "";
+    game.firstChar = ""; game.firstT = 0;
     game.locked = false;
     $("gProg").textContent = (game.idx + 1) + " / " + game.seq.length;
     $("gBar").style.width = (game.idx / game.seq.length * 100) + "%";
@@ -1338,11 +1339,14 @@ td.koc { color: var(--ko); font-weight: 800; }
     game.locked = true;
     cancelAnimationFrame(rafId);
     const q = game.seq[game.idx];
-    let elapsed = Math.min(game.time, (performance.now() - game.start) / 1000);
-    if (viaVoice) elapsed = Math.max(0.3, elapsed - 0.6);   // compense le délai de la reconnaissance
-    const ratio = Math.max(0, 1 - elapsed / game.time);
     const given = timedOut ? null : parseInt(game.input, 10);
     const ok = given === q.answer;
+    // Temps de réponse : au clavier, une bonne réponse est chronométrée à l'appui sur son premier chiffre
+    // (l'enfant connaît la réponse dès ce moment, la vitesse de frappe ne doit pas le pénaliser).
+    const end = ok && !viaVoice && game.firstT ? game.firstT : performance.now();
+    let elapsed = Math.min(game.time, (end - game.start) / 1000);
+    if (viaVoice) elapsed = Math.max(0.3, elapsed - 0.6);   // compense le délai de la reconnaissance
+    const ratio = Math.max(0, 1 - elapsed / game.time);
     let pts = { total: 0, combo: 0 };
     const ans = $("qAns"), fb = $("qFb");
     if (ok) {
@@ -1375,6 +1379,8 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (k === "ok") return answer(false);
     if (k === "del") game.input = game.input.slice(0, -1);
     else if (game.input.length < 4) game.input = (game.input + k).replace(/^0+(?=\d)/, "");
+    const c = game.input.charAt(0);              // mémorise quand le premier chiffre (actuel) a été tapé
+    if (c !== game.firstChar) { game.firstChar = c; game.firstT = c ? performance.now() : 0; }
     const a = $("qAns");
     a.textContent = game.input;
     a.classList.toggle("empty", game.input === "");
