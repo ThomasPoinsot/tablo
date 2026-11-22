@@ -1178,12 +1178,54 @@ td.koc { color: var(--ko); font-weight: 800; }
     return nums.length ? nums[nums.length - 1] : null;
   }
 
-  // Principe : l'enfant peut parler librement (« euh… sept fois huit… cinquante-six »).
-  // - Dès que la bonne réponse apparaît, même dans un résultat intermédiaire, elle est validée.
-  // - Les bruits et phrases sans nombre sont ignorés en silence.
-  // - Un nombre faux ne compte que dans un résultat final (phrase terminée).
-  // - Une phrase déjà utilisée pour répondre est ignorée ensuite (évite qu'elle compte pour le calcul suivant).
+  // Principe (la bonne réponse est connue, on cherche seulement si l'enfant l'a dite) :
+  // - Dès que la bonne réponse apparaît, même en cours de phrase, elle est validée.
+  // - Tolérance aux sons proches (« oui » pour huit, « si » pour six, « 50 6 » pour 56…), cf. voiceHeardExpected.
+  // - Rien d'autre n'est jamais validé : un nombre faux ou mal reconnu est juste affiché, le sablier continue
+  //   et l'enfant peut redire. S'il ne trouve pas, c'est « temps écoulé ».
+  // - Une écoute neuve est relancée pendant la pause entre deux calculs : pas de reste de la phrase précédente,
+  //   et sur Android (où l'écoute continue répond mal) des sessions courtes, plus réactives.
+  const VOICE_ALIASES = {
+    oui: "huit", ouie: "huit", wit: "huit", ui: "huit", huitre: "huit",
+    si: "six", scie: "six", cis: "six", sis: "six",
+    sète: "sept", set: "sept", cette: "sept", sets: "sept",
+    saint: "cinq", sein: "cinq", sain: "cinq", cinque: "cinq", sank: "cinq",
+    de: "_", d: "_", deu: "deux",          // « de » (moitié de…, double de…) ne doit pas compter pour 2
+    troie: "trois",
+    cat: "quatre", catre: "quatre", katre: "quatre", quattre: "quatre",
+    neuve: "neuf", noeuf: "neuf", oeuf: "neuf",
+    dis: "dix", dit: "dix", dise: "dix",
+    douce: "douze", douse: "douze", tréze: "treize", trèze: "treize", seiz: "seize", seise: "seize",
+    vin: "vingt", vins: "vingt", vint: "vingt", vain: "vingt", vaincs: "vingt", vingts: "vingt",
+    trente: "trente", trentes: "trente", quarante: "quarante", cinquantes: "cinquante", soixantes: "soixante",
+    sans: "cent", sang: "cent", cents: "cent", mil: "mille", mile: "mille"
+  };
+  // Tous les nombres « possibles » d'un texte : lecture normale, lecture avec les sons proches,
+  // et combinaisons de nombres voisins (« 50 6 » → 56, « 5 6 » → 56, « 300 50 » → 350).
+  function voiceCandidates(txt) {
+    const t = String(txt || "").toLowerCase().replace(/[-'’]/g, " ");
+    const aliased = t.split(/\s+/).map((w) => VOICE_ALIASES[w] || w).join(" ");
+    const out = [];
+    [aliased].forEach((x) => {
+      const nums = parseFrNumbers(x);
+      nums.forEach((n, i) => {
+        out.push(n);
+        const m = nums[i + 1];
+        if (m === undefined) return;
+        out.push(Number(String(n) + String(m)));                     // chiffres dits séparément
+        if (n >= 20 && n < 100 && n % 10 === 0 && m < 10) out.push(n + m);
+        if ((n === 60 || n === 80) && m >= 10 && m < 20) out.push(n + m);
+        if (n >= 100 && n % 100 === 0 && m < 100) out.push(n + m);
+      });
+    });
+    return out;
+  }
+  function voiceHeardExpected(txt, expected) {
+    return voiceCandidates(txt).indexOf(expected) >= 0;
+  }
+
   const voice = { rec: null, wanted: false, used: -1 };
+  const VOICE_ANDROID = /Android/i.test(navigator.userAgent);
   function setHeard(txt, off) {
     $("heard").textContent = txt;
     $("mic").classList.toggle("off", !!off);
@@ -1194,7 +1236,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (voice.rec) return;
     const r = new SR();
     r.lang = "fr-FR";
-    r.continuous = true;
+    r.continuous = !VOICE_ANDROID;     // Android : sessions courtes relancées aussitôt, plus réactives
     r.interimResults = true;
     r.maxAlternatives = 5;
     voice.used = -1;
@@ -1203,6 +1245,7 @@ td.koc { color: var(--ko); font-weight: 800; }
       for (let i = ev.resultIndex; i < ev.results.length; i++) onVoiceResult(ev.results[i], i);
     };
     r.onerror = (e) => {
+      if (voice.rec !== r) return;
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         voice.wanted = false;
         setHeard("Micro refusé : réponds avec le clavier.", true);
@@ -1212,32 +1255,37 @@ td.koc { color: var(--ko); font-weight: 800; }
       }
     };
     r.onend = () => {
-      if (voice.rec === r) voice.rec = null;
-      if (voice.wanted) setTimeout(() => { if (voice.wanted) voiceStart(); }, 200);
+      if (voice.rec !== r) return;
+      voice.rec = null;
+      if (voice.wanted) setTimeout(() => { if (voice.wanted) voiceStart(); }, 50);
     };
     try { r.start(); voice.rec = r; } catch (e) { voice.rec = null; }
   }
+  // Abandonne l'écoute en cours (et ce qu'elle avait entendu) et en relance une neuve.
+  function voiceRestart() {
+    if (!voice.wanted) return;
+    const r = voice.rec;
+    voice.rec = null;
+    if (r) { try { r.abort(); } catch (e) { /* ignoré */ } }
+    voiceStart();
+  }
   function voiceStop() {
     voice.wanted = false;
-    if (voice.rec) { try { voice.rec.abort(); } catch (e) { /* ignoré */ } voice.rec = null; }
+    const r = voice.rec;
+    voice.rec = null;
+    if (r) { try { r.abort(); } catch (e) { /* ignoré */ } }
   }
   function onVoiceResult(res, idx) {
     if (!game || game.locked || idx <= voice.used) return;
     const expected = game.seq[game.idx].answer;
-    let heard = "", wrong = null;
     for (let j = 0; j < res.length; j++) {
-      const txt = res[j].transcript;
-      const nums = parseFrNumbers(txt).filter((x) => x <= 9999);
-      if (nums.indexOf(expected) >= 0) return voiceAnswer(expected, txt, idx);   // bonne réponse entendue : validée
-      if (nums.length && wrong === null) { wrong = nums[nums.length - 1]; heard = txt; }
+      if (voiceHeardExpected(res[j].transcript, expected)) return voiceAnswer(expected, res[j].transcript, idx);
     }
-    if (!res.isFinal) {                         // phrase en cours : on montre juste ce qu'on entend
-      const t = res[0].transcript.trim();
-      if (t) setHeard("« " + t + " … »");
-      return;
-    }
-    if (wrong !== null) return voiceAnswer(wrong, heard, idx);   // phrase finie avec un nombre, mais pas le bon
-    setHeard("Je t'écoute…");                   // bruit ou phrase sans nombre : ignoré
+    const t = res[0].transcript.trim();
+    if (!t) return;
+    // Pas la bonne réponse : on montre ce qui a été entendu, sans rien valider. L'enfant peut redire.
+    if (!res.isFinal) setHeard("« " + t + " … »");
+    else setHeard(parseFrNumbers(t).length ? "« " + t + " » ? Redis !" : "Je t'écoute…");
   }
   function voiceAnswer(n, said, idx) {
     voice.used = idx;
@@ -1369,6 +1417,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (game.streak >= 2) { c.textContent = "Combo ×" + game.streak; c.style.visibility = "visible"; }
     else c.style.visibility = "hidden";
 
+    if (game.voice) voiceRestart();   // écoute neuve prête pour le calcul suivant
     game.results.push({ q, given, ok, timedOut, elapsed, points: pts.total });
     game.idx++;
     pendingTimeout = setTimeout(nextQuestion, ok ? 900 : 2000);
@@ -1693,7 +1742,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   // =====================================================================
   applyTheme(kid() ? kid().settings.theme : "lagon");
   renderKids();
-  window.__tablo = { parseFrNumber, parseFrNumbers };  // utile pour tester la reconnaissance
+  window.__tablo = { parseFrNumber, parseFrNumbers, voiceHeardExpected };  // utile pour tester la reconnaissance
 })();
 </script>
 </body>
