@@ -72,7 +72,7 @@ body {
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 .wrap { max-width: 880px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-header.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; }
+header.top { position: relative; z-index: 40; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; }
 .logo { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
 .logo span { color: var(--accent); }
 .subtle { color: var(--muted); font-size: 14px; }
@@ -106,6 +106,15 @@ h2.flex { display: flex; justify-content: space-between; align-items: center; ga
 }
 .kidcard.add { border: 3px dashed var(--line); box-shadow: none; background: transparent; color: var(--muted); }
 .kidcard.add .av { background: var(--chip); font-size: 48px; font-weight: 800; color: var(--accent); }
+.topright { display: flex; align-items: center; gap: 6px; }
+.menuwrap { position: relative; }
+.dots { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; font-size: 24px; font-weight: 800; line-height: 1; color: var(--muted); }
+.dots:hover, .dots[aria-expanded="true"] { background: var(--chip); color: var(--ink); }
+.menu { position: absolute; right: 0; top: 46px; z-index: 30; min-width: 260px; max-width: calc(100vw - 32px); background: var(--card); border-radius: 16px; padding: 6px; box-shadow: 0 12px 34px rgba(0,0,0,.2); }
+.menu[hidden] { display: none; }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 15px; }
+.menu button:hover { background: var(--chip); }
+.menunote { font-size: 12px; color: var(--muted); padding: 8px 12px 6px; line-height: 1.45; border-top: 1px solid var(--line); margin-top: 4px; }
 .savebar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
 .savenote { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
@@ -355,8 +364,19 @@ td.koc { color: var(--ko); font-weight: 800; }
 <div class="wrap">
   <header class="top">
     <div class="logo">Tab<span>lo</span></div>
-    <div class="subtle">Révise tes calculs !</div>
+    <div class="topright">
+      <span class="subtle hide-sm">Révise tes calculs !</span>
+      <div class="menuwrap">
+        <button class="dots" id="btnMenu" aria-label="Menu" aria-haspopup="true" aria-expanded="false">⋮</button>
+        <div class="menu" id="menu" hidden>
+          <button id="btnExport">💾 Exporter la sauvegarde</button>
+          <button id="btnImport">📂 Importer une sauvegarde</button>
+          <div class="menunote">Profils et résultats sont enregistrés automatiquement dans ce navigateur. L'export crée un fichier <b>.json</b> pour garder une copie ou passer sur un autre appareil.</div>
+        </div>
+      </div>
+    </div>
   </header>
+  <input type="file" id="fileImport" accept=".json,application/json" hidden>
 
   <div class="kidbar" id="kidbar">
     <div style="display:flex;gap:8px;align-items:center;min-width:0"><button class="kidchip" id="kbSwitch" title="Changer d'enfant"><span class="av sm" id="kbAv"></span><span id="kbName"></span><span class="sw">⇄</span></button>
@@ -372,14 +392,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     <div class="kids-title">Qui joue aujourd'hui ?</div>
     <div class="kids" id="kidsGrid"></div>
     <div class="savebar">
-      <button class="btn2" id="btnExport">💾 Exporter la sauvegarde</button>
-      <button class="btn2" id="btnImport">📂 Importer une sauvegarde</button>
       <button class="btn2" id="btnInstall">📱 Ajouter à l'écran d'accueil</button>
-      <input type="file" id="fileImport" accept=".json,application/json" hidden>
-    </div>
-    <div class="savenote">
-      Les profils et résultats sont enregistrés automatiquement dans ce navigateur.<br>
-      L'export crée un fichier <b>.json</b> : pratique pour garder une copie ou passer sur un autre appareil.
     </div>
   </section>
 
@@ -714,6 +727,16 @@ td.koc { color: var(--ko); font-weight: 800; }
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   });
   $("btnImport").addEventListener("click", () => $("fileImport").click());
+
+  // Menu ⋮ (export / import)
+  function setMenu(open) {
+    $("menu").hidden = !open;
+    $("btnMenu").setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  $("btnMenu").addEventListener("click", (e) => { e.stopPropagation(); setMenu($("menu").hidden); });
+  $("menu").addEventListener("click", (e) => { if (e.target.closest("button")) setMenu(false); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".menuwrap")) setMenu(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
   $("fileImport").addEventListener("change", (e) => {
     const f = e.target.files[0];
     e.target.value = "";
