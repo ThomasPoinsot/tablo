@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Génère des copies de tablo.html avec des données de test et une navigation automatique.
+
+Usage : python3 dev/make_test_pages.py <dossier_sortie>
+Produit v_kids.html, v_setup.html, v_prog.html, v_game.html dans le dossier de sortie.
+"""
+import json, os, random, sys
+
+out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/tablo-test"
+os.makedirs(out, exist_ok=True)
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+src = open(os.path.join(root, "tablo.html"), encoding="utf-8").read()
+
+random.seed(3)
+facts = {}
+for t in range(1, 11):
+    for b in range(1, 11):
+        if t == 9 and b > 5:
+            continue  # quelques calculs jamais vus
+        p, e = {1: (.98, 2), 2: (.98, 2), 5: (.98, 2), 10: (.98, 2), 3: (.85, 3.5), 4: (.85, 3.5),
+                7: (.45, 6), 8: (.45, 6), 9: (.6, 5)}.get(t, (.7, 4.5))
+        facts[f"mul:{t}:{b}"] = [[1 if random.random() < p else 0, round(max(1, random.gauss(e, 1)), 1)]
+                                 for _ in range(random.randint(2, 8))]
+for n in range(1, 16):
+    facts[f"double:{n}"] = [[1, 2.0], [1, 2.5]]
+for n in (2, 4, 6, 8, 10, 12):
+    facts[f"half:{n}"] = [[1, 3.1], [0, 6]]
+hist = [{"d": 1763800000000 - i * 86400000, "type": "mul", "mode": "smart" if i % 2 else "random",
+         "n": 10, "time": 10, "good": g, "note": g * 2, "pts": g * 70}
+        for i, g in enumerate([9, 8, 8, 7, 7, 6, 8, 5, 6, 4, 5, 3])]
+db = {"kids": [{"id": "a1", "name": "Léa", "avatar": "🦊", "history": hist, "facts": facts, "records": {}},
+               {"id": "b2", "name": "Tom", "avatar": "🦖"}], "currentId": "a1"}
+
+seed = "<script>localStorage.setItem('tablo.v1'," + json.dumps(json.dumps(db)) + ");</script>"
+base = src.replace("<style>", seed + "<style>", 1)
+nav = {
+    "kids": "",
+    "setup": 'document.querySelector(".kidcard").click();',
+    "prog": 'document.querySelector(".kidcard").click();document.querySelector("[data-tab=scrProgress]").click();',
+    "game": 'document.querySelector(".kidcard").click();document.getElementById("btnGo").click();'
+            'setTimeout(()=>{["4","2"].forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k})))},2400);',
+}
+for name, js in nav.items():
+    with open(os.path.join(out, f"v_{name}.html"), "w", encoding="utf-8") as f:
+        f.write(base.replace("</body>", "<script>" + js + "</script></body>"))
+print(out)
