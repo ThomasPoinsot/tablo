@@ -157,8 +157,14 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 - `--virtual-time-budget` n'avance pas toujours `requestAnimationFrame`. Pour tester un parcours de jeu, il vaut mieux simuler des frappes clavier avec `KeyboardEvent("keydown")` que d'attendre le sablier.
 - Pour tester le service worker ou le manifeste, il faut servir en http (`python3 -m http.server`), pas en `file://`.
 
-## Évolutions récentes (2026-11-22, toutes en ligne)
+## Évolutions récentes (toutes en ligne)
 
+2026-11-23 :
+- Couleurs de maîtrise : une couleur franche par niveau (rouge, orange, jaune, vert) au lieu du dégradé, où « en cours » et « acquis » se confondaient. Légende en pastilles.
+- « Acquis » un peu plus facile : seuil 0,85 → 0,80, réponse pleinement rapide jusqu'à 4 s (au lieu de 3 s), minimum 0,5 à 12 s (au lieu de 10 s). Un calcul devient acquis après 2 bonnes réponses en moins de 4 s, ou en 5 s ; une seule ne suffit pas.
+- Barres de progression par niveau, demandées par l'utilisateur « dans le suivi de progression après partie » et « à la fin » : barre « Progression générale » dans l'onglet Progression, barre par table dans le classement, carte « Ta progression » sur l'écran de fin (avant → après animé, nouveaux acquis, acquis à consolider). Voir Algorithmes → Barres de niveaux.
+
+2026-11-22 :
 - « Revoir mes erreurs » ne compte plus comme une séance (pas de 20/20 sur 3 calculs refaits). Ses essais comptent quand même à moitié pour chaque calcul (voir Modèle de données).
 - Temps de réponse au clavier compté au premier chiffre d'une bonne réponse : la vitesse de frappe ne pénalise plus l'acquisition.
 - Plus de touche OK : validation automatique au bon nombre de chiffres. Le 0 est au centre de la dernière ligne du pavé.
