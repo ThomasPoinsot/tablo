@@ -87,12 +87,12 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - **Score d'un essai** (`attemptScore`) :
   - faux : 0 ;
   - juste en révision (« Revoir mes erreurs ») : 0,5 ;
-  - juste en 3 s ou moins : 1 ;
-  - juste entre 3 et 10 s : linéaire de 1 à 0,5 ;
-  - juste en 10 s ou plus : 0,5.
+  - juste en 4 s ou moins : 1 ;
+  - juste entre 4 et 12 s : linéaire de 1 à 0,5 ;
+  - juste en 12 s ou plus : 0,5.
 - **Maîtrise d'un calcul** (`mastery`) : moyenne pondérée des essais, avec un poids × 0,75 à chaque essai plus ancien, divisée par `Σpoids + 0,3` (a priori prudent). Elle vaut `null` si le calcul n'a jamais été vu.
-- **Niveaux** : < 0,40 non acquis, < 0,65 fragile, < 0,85 en cours, sinon acquis.
-- **Couleur** (`heat`) : teinte HSL de 0 (rouge) à 125 (vert). Elle est indépendante du thème.
+- **Niveaux** (constantes `FRAGILE`, `EN_COURS`, `ACQUIRED`) : < 0,40 non acquis, < 0,65 fragile, < 0,80 en cours, sinon acquis. Allégé le 2026-11-23 (avant : 0,85 et 3 s / 10 s dans `attemptScore`).
+- **Couleur** (`heat` / `LEVELS`) : une couleur franche par niveau (rouge, orange, jaune, vert), indépendante du thème. L'ancien dégradé continu rendait « en cours » et « acquis » trop proches. Légende en 4 pastilles.
 - **Score d'une table** (`groupStats`) : moyenne des maîtrises de ses calculs, un calcul jamais vu comptant 0. Le classement va du plus acquis au moins acquis.
 - **Mode intelligent** (`smartSequence`) : tirage pondéré avec remise, par `smartWeight` :
   - calcul jamais vu : poids 1 ;
@@ -137,7 +137,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v14`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v15`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.

@@ -279,8 +279,7 @@ td.koc { color: var(--ko); font-weight: 800; }
 .hmrow { display: grid; grid-template-columns: 140px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
 .hml { font-size: 13px; font-weight: 800; text-align: right; }
 .hmcells { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 3px; }
-.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin: 12px 0 4px; flex-wrap: wrap; }
-.legend .grad { flex: 1; min-width: 120px; height: 10px; border-radius: 99px; background: linear-gradient(90deg, hsl(0,62%,50%), hsl(30,70%,50%), hsl(60,65%,48%), hsl(95,50%,45%), hsl(125,45%,40%)); }
+.legend { display: flex; align-items: center; gap: 6px 14px; font-size: 12px; color: var(--muted); margin: 12px 0 4px; flex-wrap: wrap; }
 .legend .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: var(--none); vertical-align: middle; margin-right: 4px; }
 .detail { min-height: 44px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--chip); font-size: 14px; line-height: 1.45; }
 
@@ -477,8 +476,8 @@ td.koc { color: var(--ko); font-weight: 800; }
     <div class="card">
       <h2 class="flex"><span>Carte des calculs</span><span class="subtle" style="font-weight:600">Touche une case pour le détail</span></h2>
       <div id="hmWrap"></div>
-      <div class="legend"><span>Non acquis</span><div class="grad"></div><span>Acquis</span><span style="margin-left:10px"><span class="sw"></span>Jamais vu</span></div>
-      <div class="detail" id="hmDetail">Une case est <b>acquise</b> quand la réponse est juste et rapide (moins de 3 s) plusieurs fois de suite. Les essais récents comptent plus que les anciens.</div>
+      <div class="legend"><span><span class="sw" style="background:hsl(0,68%,50%)"></span>Non acquis</span><span><span class="sw" style="background:hsl(25,90%,55%)"></span>Fragile</span><span><span class="sw" style="background:hsl(48,92%,52%)"></span>En cours</span><span><span class="sw" style="background:hsl(140,60%,34%)"></span>Acquis</span><span><span class="sw"></span>Jamais vu</span></div>
+      <div class="detail" id="hmDetail">Une case est <b>acquise</b> quand la réponse est juste et rapide (moins de 4 s) plusieurs fois de suite. Les essais récents comptent plus que les anciens.</div>
     </div>
     <div class="card">
       <h2 class="flex"><span id="rankTitle">Classement des tables</span></h2>
@@ -962,9 +961,9 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (!at[0]) return 0;
     if (at[2]) return 0.5;         // juste en révision : la correction venait d'être montrée, ça compte à moitié
     const e = at[1];
-    if (e <= 3) return 1;          // réponse automatique
-    if (e >= 10) return 0.5;       // juste mais très lent
-    return 1 - 0.5 * (e - 3) / 7;
+    if (e <= 4) return 1;          // réponse automatique
+    if (e >= 12) return 0.5;       // juste mais très lent
+    return 1 - 0.5 * (e - 4) / 8;
   }
   // Moyenne pondérée (les essais récents comptent plus) avec un léger a priori prudent.
   function mastery(list) {
@@ -983,17 +982,28 @@ td.koc { color: var(--ko); font-weight: 800; }
       lastOk: last ? !!last[0] : null, lastReview: !!(last && last[2])
     };
   }
+  // Seuils des niveaux de maîtrise. ACQUIRED sert partout (carte, résumé, mode intelligent).
+  const FRAGILE = 0.4, EN_COURS = 0.65, ACQUIRED = 0.8;
+  // Une couleur franche par niveau (indépendante du thème) : on distingue d'un coup d'œil
+  // un calcul acquis (vert) d'un calcul en cours (jaune).
+  const LEVELS = [
+    { min: ACQUIRED, label: "Acquis",     bg: "hsl(140,60%,34%)", fg: "#fff" },
+    { min: EN_COURS, label: "En cours",   bg: "hsl(48,92%,52%)",  fg: "#1f2430" },
+    { min: FRAGILE,  label: "Fragile",    bg: "hsl(25,90%,55%)",  fg: "#1f2430" },
+    { min: -1,       label: "Non acquis", bg: "hsl(0,68%,50%)",   fg: "#fff" }
+  ];
+  function levelOf(m) {
+    for (let i = 0; i < LEVELS.length; i++) if (m >= LEVELS[i].min) return LEVELS[i];
+    return LEVELS[LEVELS.length - 1];
+  }
   function level(m) {
     if (m === null) return { label: "Jamais vu", color: "var(--glass)" };
-    if (m < 0.4) return { label: "Non acquis", color: heat(m).bg };
-    if (m < 0.65) return { label: "Fragile", color: heat(m).bg };
-    if (m < 0.85) return { label: "En cours", color: heat(m).bg };
-    return { label: "Acquis", color: heat(m).bg };
+    const L = levelOf(m);
+    return { label: L.label, color: L.bg };
   }
   function heat(m) {
-    const h = Math.round(Math.max(0, Math.min(1, m)) * 125);
-    const l = h > 90 ? 40 : h > 40 ? 47 : 50;
-    return { bg: "hsl(" + h + "," + (h > 90 ? 45 : 65) + "%," + l + "%)", fg: h > 38 && h < 92 ? "#1f2430" : "#fff" };
+    const L = levelOf(Math.max(0, Math.min(1, m)));
+    return { bg: L.bg, fg: L.fg };
   }
   function groupStats(k, type) {
     const cat = catalog(type);
@@ -1002,7 +1012,7 @@ td.koc { color: var(--ko); font-weight: 800; }
       const ms = facts.map((f) => mastery(k.facts[f.key]));
       const seen = ms.filter((m) => m !== null).length;
       const score = ms.reduce((x, m) => x + (m || 0), 0) / facts.length;
-      const acquired = ms.filter((m) => m !== null && m >= 0.85).length;
+      const acquired = ms.filter((m) => m !== null && m >= ACQUIRED).length;
       return Object.assign({}, g, { score, seen, total: facts.length, acquired });
     });
   }
@@ -1051,7 +1061,7 @@ td.koc { color: var(--ko); font-weight: 800; }
       $("modeInfo").innerHTML = "Les calculs des tables choisies sont tirés au hasard, chacun avec la même chance.";
     } else {
       const seen = pool.map((f) => ({ f, st: factStats(k, f.key) })).filter((x) => x.st.m !== null);
-      const weak = seen.filter((x) => x.st.m < 0.85).sort((a, b) => a.st.m - b.st.m).slice(0, 8);
+      const weak = seen.filter((x) => x.st.m < ACQUIRED).sort((a, b) => a.st.m - b.st.m).slice(0, 8);
       const unseen = pool.length - seen.length;
       $("modeInfo").innerHTML = "Propose surtout les calculs <b>ratés, lents ou jamais vus</b>, et de temps en temps des calculs acquis pour vérifier qu'ils le restent." +
         (weak.length ? "<br>À travailler en priorité : <b>" + weak.map((x) => escapeHtml(shortLabel(x.f))).join(", ") + "</b>" : "") +
@@ -1633,8 +1643,8 @@ td.koc { color: var(--ko); font-weight: 800; }
     const cat = catalog(progType);
     const st = cat.map((f) => factStats(k, f.key));
     const seen = st.filter((x) => x.m !== null).length;
-    const acquired = st.filter((x) => x.m !== null && x.m >= 0.85).length;
-    const fragile = st.filter((x) => x.m !== null && x.m < 0.65).length;
+    const acquired = st.filter((x) => x.m !== null && x.m >= ACQUIRED).length;
+    const fragile = st.filter((x) => x.m !== null && x.m < EN_COURS).length;
     const sessions = k.history.filter((h) => h.type === progType).length;
     $("progSummary").innerHTML =
       sumBox(acquired + "<small>/" + cat.length + "</small>", "Calculs acquis") +
