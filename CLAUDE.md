@@ -28,10 +28,10 @@ Outils → Données de référence → Sauvegarde → Écran enfants → Navigat
 
 - `scrKids` : choix de l'enfant, ajout et édition dans `<dialog id="dlgKid">`.
 - `scrSetup` : réglages de la séance.
-- `scrProgress` : carte de chaleur, classement des tables, évolution des notes, historique.
+- `scrProgress` : barre « Progression générale », carte de chaleur, classement des tables, évolution des notes, historique.
 - `scrCount` : compte à rebours 3-2-1.
 - `scrGame` : le calcul, le sablier en SVG animé par `requestAnimationFrame`, le pavé numérique.
-- `scrResult` : note, points, étoiles, détail de chaque calcul.
+- `scrResult` : note, points, étoiles, carte « Ta progression », détail de chaque calcul.
 
 Autres éléments :
 - La barre `#kidbar` contient l'avatar, le prénom, le bouton 🎨 et les onglets. Elle est visible sur les écrans Setup, Progress et Result.
@@ -93,6 +93,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - **Maîtrise d'un calcul** (`mastery`) : moyenne pondérée des essais, avec un poids × 0,75 à chaque essai plus ancien, divisée par `Σpoids + 0,3` (a priori prudent). Elle vaut `null` si le calcul n'a jamais été vu.
 - **Niveaux** (constantes `FRAGILE`, `EN_COURS`, `ACQUIRED`) : < 0,40 non acquis, < 0,65 fragile, < 0,80 en cours, sinon acquis. Allégé le 2026-11-23 (avant : 0,85 et 3 s / 10 s dans `attemptScore`).
 - **Couleur** (`heat` / `LEVELS`) : une couleur franche par niveau (rouge, orange, jaune, vert), indépendante du thème. L'ancien dégradé continu rendait « en cours » et « acquis » trop proches. Légende en 4 pastilles.
+- **Barres de niveaux** (`lvBar`, `lvCounts`, `lvLegend`) : barre empilée acquis → en cours → fragile → non acquis → jamais vu. Utilisée pour la progression générale d'un type, chaque ligne du classement (trié par nombre d'acquis, puis score ; à droite « acquis/total ») et la carte « Ta progression » de fin de séance (`renderResultProgress`) : sélection = tables des réglages + tables des calculs joués, barre animée de l'état avant la séance vers l'état après (`lvAnimate`), nouveaux acquis, acquis perdus (« À consolider »), une barre par table si plusieurs.
 - **Score d'une table** (`groupStats`) : moyenne des maîtrises de ses calculs, un calcul jamais vu comptant 0. Le classement va du plus acquis au moins acquis.
 - **Mode intelligent** (`smartSequence`) : tirage pondéré avec remise, par `smartWeight` :
   - calcul jamais vu : poids 1 ;
@@ -137,7 +138,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v15`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v16`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
@@ -148,6 +149,8 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 1. la syntaxe JS de chaque bloc `<script>` (`node --check`) ;
 2. les tests de `parseFrNumber` ;
 3. des captures d'écran avec Chrome en mode automatique, à 375×667, 820×1180 et 1366×768, sur les écrans kids, setup, progression et jeu, avec des données de test générées par `dev/make_test_pages.py`.
+
+`make_test_pages.py` produit aussi `v_result.html` (séance complète jouée au clavier, 3e réponse fausse), non capturé par `check.sh` : le lancer à la main avec `--virtual-time-budget=40000` et une fenêtre haute (ex. 375×1500).
 
 Il faut ensuite regarder les PNG produits. Points à connaître :
 - Les captures prises juste après une navigation peuvent paraître pâles : c'est l'animation `fade` des écrans, pas un bug.

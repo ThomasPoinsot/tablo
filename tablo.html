@@ -287,8 +287,16 @@ td.koc { color: var(--ko); font-weight: 800; }
 .rank .pos { color: var(--muted); font-weight: 800; text-align: right; }
 .rank .nm { font-weight: 800; }
 .rank .nm small { display: block; font-weight: 600; color: var(--muted); font-size: 12px; }
-.rank .bar { height: 14px; background: var(--none); border-radius: 99px; overflow: hidden; }
-.rank .bar > div { height: 100%; border-radius: 99px; }
+.lvbar { display: flex; gap: 2px; height: 14px; border-radius: 99px; overflow: hidden; background: var(--none); }
+.lvbar > div { height: 100%; flex-shrink: 0; transition: width .9s ease; }
+.lvbar > div:last-child { flex-shrink: 1; }
+.lvbar.big { height: 22px; }
+.lvhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; font-weight: 800; }
+.lvhead .subtle { font-weight: 600; }
+.lvgain { margin-top: 10px; font-size: 14px; }
+.lvgain b { color: var(--ok); }
+.rrow { display: grid; grid-template-columns: 130px 1fr 44px; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px; font-weight: 800; }
+.rrow .pct { text-align: right; font-variant-numeric: tabular-nums; }
 .rank .pct { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
 .tag { display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 99px; margin-left: 6px; color: #fff; vertical-align: 1px; }
 
@@ -332,7 +340,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   .rank .pos { grid-row: 1 / 3; }
   .rank .nm { grid-column: 2; grid-row: 1; }
   .rank .pct { grid-column: 3; grid-row: 1; }
-  .rank .bar { grid-column: 2 / 4; grid-row: 2; }
+  .rank .lvbar { grid-column: 2 / 4; grid-row: 2; }
   .av { width: 74px; height: 74px; font-size: 42px; }
   .tab { padding: 7px 9px; font-size: 13px; }
   .tabs { padding: 3px; gap: 2px; flex: none; }
@@ -472,6 +480,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     <div class="card">
       <div class="chips" id="progTypes"></div>
       <div class="summary" id="progSummary" style="margin-top:16px"></div>
+      <div id="progAll"></div>
     </div>
     <div class="card">
       <h2 class="flex"><span>Carte des calculs</span><span class="subtle" style="font-weight:600">Touche une case pour le détail</span></h2>
@@ -481,7 +490,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     </div>
     <div class="card">
       <h2 class="flex"><span id="rankTitle">Classement des tables</span></h2>
-      <div class="hint" style="margin:-6px 0 8px">De la plus acquise à la moins acquise.</div>
+      <div class="hint" style="margin:-6px 0 8px">De la plus acquise à la moins acquise. À droite : calculs acquis.</div>
       <div id="rankList"></div>
       <button class="go" id="btnTarget" style="margin-top:16px;font-size:18px;padding:14px">🧠 S'entraîner sur les 3 moins acquises</button>
     </div>
@@ -553,6 +562,10 @@ td.koc { color: var(--ko); font-weight: 800; }
         <div><div class="lab" id="rGoodLab">Bonnes réponses</div><div class="big" id="rGood">0<small>/0</small></div></div>
       </div>
       <div class="subtle" style="text-align:center;margin-top:10px" id="rAvg"></div>
+    </div>
+    <div class="card" id="rProgCard">
+      <h2>Ta progression</h2>
+      <div id="rProg"></div>
     </div>
     <div class="btns" style="margin-bottom:16px">
       <button class="btn2 primary" id="btnAgain">↻ Rejouer</button>
@@ -1005,6 +1018,32 @@ td.koc { color: var(--ko); font-weight: 800; }
     const L = levelOf(Math.max(0, Math.min(1, m)));
     return { bg: L.bg, fg: L.fg };
   }
+  // Barre empilée par niveau : acquis (à gauche) → en cours → fragile → non acquis → jamais vu.
+  // ms : maîtrises (null = jamais vu). before (facultatif) : maîtrises avant la séance, pour animer.
+  function lvCounts(ms) {
+    const c = LEVELS.map(() => 0);
+    let none = 0;
+    ms.forEach((m) => { if (m === null) none++; else c[LEVELS.indexOf(levelOf(m))]++; });
+    return { c, none, total: ms.length };
+  }
+  function lvBar(ms, cls, before) {
+    const now = lvCounts(ms), from = lvCounts(before || ms);
+    const pct = (x) => (x / (now.total || 1) * 100) + "%";
+    // Les niveaux vides avant et après sont omis (sinon l'espace entre segments laisse un liseré gris).
+    return '<div class="lvbar ' + (cls || "") + '">' + LEVELS.map((L, i) => from.c[i] || now.c[i] ?
+      '<div style="background:' + L.bg + ";width:" + pct(from.c[i]) + '" data-w="' + pct(now.c[i]) + '"></div>' : "").join("") +
+      (now.none ? '<div style="flex:1"></div>' : "") + "</div>";
+  }
+  // Lance l'animation des barres rendues avec « before » (largeur finale dans data-w).
+  function lvAnimate(root) {
+    setTimeout(() => root.querySelectorAll(".lvbar > div[data-w]").forEach((d) => { d.style.width = d.dataset.w; }), 350);
+  }
+  function lvLegend(ms) {
+    const x = lvCounts(ms);
+    return '<div class="legend">' + LEVELS.map((L, i) =>
+      '<span><span class="sw" style="background:' + L.bg + '"></span>' + x.c[i] + " " + L.label.toLowerCase() + (L.label === "Fragile" && x.c[i] > 1 ? "s" : "") + "</span>").join("") +
+      '<span><span class="sw"></span>' + x.none + " jamais vu" + (x.none > 1 ? "s" : "") + "</span></div>";
+  }
   function groupStats(k, type) {
     const cat = catalog(type);
     return groupsOf(type).map((g) => {
@@ -1013,7 +1052,7 @@ td.koc { color: var(--ko); font-weight: 800; }
       const seen = ms.filter((m) => m !== null).length;
       const score = ms.reduce((x, m) => x + (m || 0), 0) / facts.length;
       const acquired = ms.filter((m) => m !== null && m >= ACQUIRED).length;
-      return Object.assign({}, g, { score, seen, total: facts.length, acquired });
+      return Object.assign({}, g, { score, seen, total: facts.length, acquired, ms });
     });
   }
 
@@ -1560,6 +1599,12 @@ td.koc { color: var(--ko); font-weight: 800; }
     // Pas de note, ni d'historique des séances, ni de record. Les essais comptent quand même pour
     // chaque calcul, marqués « révision » (une bonne réponse y vaut moitié, cf. attemptScore).
     const review = g.mode === "errors";
+    // Sélection travaillée : les tables (ou parties) des réglages, plus celles des calculs joués.
+    const groupSet = {};
+    g.results.forEach((r) => { groupSet[r.q.group] = 1; });
+    if (S().type === g.type) buildPool(S()).forEach((f) => { groupSet[f.group] = 1; });
+    const selFacts = catalog(g.type).filter((f) => groupSet[f.group]);
+    const msBefore = selFacts.map((f) => mastery(k.facts[f.key]));
     g.results.forEach((r) => {
       const L = k.facts[r.q.key] || (k.facts[r.q.key] = []);
       const at = [r.ok ? 1 : 0, Math.round(r.elapsed * 10) / 10];
@@ -1607,10 +1652,41 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("rTable").innerHTML = '<tr><th>#</th><th>Calcul</th><th class="num">Ta réponse</th><th class="num">Correction</th>' +
       '<th class="num hide-sm">Temps</th><th class="num">Points</th></tr>' + rows;
 
+    renderResultProgress(k, g.type, selFacts, msBefore);
+
     lastErrors = g.results.filter((r) => !r.ok).map((r) => r.q);
     $("btnErrors").style.display = lastErrors.length ? "" : "none";
     $("btnErrors").textContent = "Revoir mes erreurs (" + lastErrors.length + ")";
     show("scrResult");
+  }
+
+  // Carte « Ta progression » de l'écran de fin : la sélection avant → après la séance (barre animée),
+  // les nouveaux calculs acquis, puis une barre par table si la sélection en compte plusieurs.
+  function renderResultProgress(k, type, facts, before) {
+    const after = facts.map((f) => mastery(k.facts[f.key]));
+    const isAcq = (m) => m !== null && m >= ACQUIRED;
+    const nAcq = after.filter(isAcq).length;
+    const won = facts.filter((f, i) => isAcq(after[i]) && !isAcq(before[i]));
+    const lost = facts.filter((f, i) => !isAcq(after[i]) && isAcq(before[i]));
+    let html = '<div class="lvhead" style="margin-top:4px"><span>' + nAcq + " / " + facts.length +
+      ' calculs acquis</span><span class="subtle">' + Math.round(nAcq / (facts.length || 1) * 100) + " % de ta sélection</span></div>" +
+      lvBar(after, "big", before);
+    html += '<div class="lvgain">' +
+      (won.length ? "🎉 <b>+" + won.length + " acquis</b> : " + won.map((f) => escapeHtml(shortLabel(f))).join(", ") + "<br>"
+        : nAcq === facts.length ? "Tout est acquis dans ta sélection, bravo ! 🎉<br>"
+        : "Pas de nouveau calcul acquis cette fois. Il faut en général 2 bonnes réponses rapides de suite.<br>") +
+      (lost.length ? "À consolider : " + lost.map((f) => escapeHtml(shortLabel(f))).join(", ") : "") + "</div>";
+    const groups = groupsOf(type).filter((gr) => facts.some((f) => f.group === gr.id));
+    if (groups.length > 1) {
+      html += '<div style="margin-top:12px">' + groups.map((gr) => {
+        const idx = facts.map((f, i) => f.group === gr.id ? i : -1).filter((i) => i >= 0);
+        const a = idx.map((i) => after[i]), b = idx.map((i) => before[i]);
+        return '<div class="rrow"><span>' + gr.label + "</span>" + lvBar(a, "", b) +
+          '<span class="pct">' + a.filter(isAcq).length + "/" + a.length + "</span></div>";
+      }).join("") + "</div>";
+    }
+    $("rProg").innerHTML = html;
+    lvAnimate($("rProg"));
   }
 
   function launch(mode) {
@@ -1651,6 +1727,9 @@ td.koc { color: var(--ko); font-weight: 800; }
       sumBox(seen + "<small>/" + cat.length + "</small>", "Déjà vus") +
       sumBox(String(fragile), "À travailler") +
       sumBox(String(sessions), "Séances");
+    const allMs = st.map((x) => x.m);
+    $("progAll").innerHTML = '<div class="lvhead"><span>Progression générale</span><span class="subtle">' +
+      Math.round(acquired / cat.length * 100) + " % acquis</span></div>" + lvBar(allMs, "big") + lvLegend(allMs);
 
     renderHeatmap(k, cat);
     renderRanking(k);
@@ -1716,16 +1795,13 @@ td.koc { color: var(--ko); font-weight: 800; }
   }
 
   function renderRanking(k) {
-    const gs = groupStats(k, progType).sort((a, b) => b.score - a.score || b.seen - a.seen);
+    const gs = groupStats(k, progType).sort((a, b) => b.acquired - a.acquired || b.score - a.score || b.seen - a.seen);
     $("rankTitle").textContent = progType === "dm" ? "Classement des parties" : "Classement des tables";
-    $("rankList").innerHTML = gs.map((g, i) => {
-      const lv = level(g.seen ? g.score : null);
-      const h = heat(g.score);
-      return '<div class="rank"><div class="pos">' + (i + 1) + '</div><div class="nm">' + g.label +
-        '<small>' + (g.seen ? g.acquired + " acquis · " + g.seen + "/" + g.total + " vus" : "jamais travaillée") + "</small></div>" +
-        '<div class="bar"><div style="width:' + Math.max(g.seen ? 3 : 0, g.score * 100) + "%;background:" + h.bg + '"></div></div>' +
-        '<div class="pct">' + (g.seen ? Math.round(g.score * 100) + " %" : "—") + "</div></div>";
-    }).join("");
+    $("rankList").innerHTML = gs.map((g, i) =>
+      '<div class="rank"><div class="pos">' + (i + 1) + '</div><div class="nm">' + g.label +
+        '<small>' + (g.seen ? g.seen + "/" + g.total + " vus" : "jamais travaillée") + "</small></div>" +
+        lvBar(g.ms) +
+        '<div class="pct">' + (g.seen ? g.acquired + "/" + g.total : "—") + "</div></div>").join("");
     $("btnTarget").textContent = progType === "dm" ? "🧠 S'entraîner sur les 3 parties les moins acquises" : "🧠 S'entraîner sur les 3 tables les moins acquises";
   }
   $("btnTarget").addEventListener("click", () => {

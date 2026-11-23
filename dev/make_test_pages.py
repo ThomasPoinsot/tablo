@@ -2,7 +2,7 @@
 """Génère des copies de tablo.html avec des données de test et une navigation automatique.
 
 Usage : python3 dev/make_test_pages.py <dossier_sortie>
-Produit v_kids.html, v_setup.html, v_prog.html, v_game.html dans le dossier de sortie.
+Produit v_kids.html, v_setup.html, v_prog.html, v_game.html, v_result.html dans le dossier de sortie.
 """
 import json, os, random, sys
 
@@ -28,7 +28,9 @@ for n in (2, 4, 6, 8, 10, 12):
 hist = [{"d": 1763800000000 - i * 86400000, "type": "mul", "mode": "smart" if i % 2 else "random",
          "n": 10, "time": 10, "good": g, "note": g * 2, "pts": g * 70}
         for i, g in enumerate([9, 8, 8, 7, 7, 6, 8, 5, 6, 4, 5, 3])]
-db = {"kids": [{"id": "a1", "name": "Léa", "avatar": "🦊", "history": hist, "facts": facts, "records": {}},
+settings = {"type": "mul", "mulTables": [3, 4, 7], "count": 10, "time": 10, "mode": "smart"}
+db = {"kids": [{"id": "a1", "name": "Léa", "avatar": "🦊", "history": hist, "facts": facts, "records": {},
+                "settings": settings},
                {"id": "b2", "name": "Tom", "avatar": "🦖"}], "currentId": "a1"}
 
 seed = "<script>localStorage.setItem('tablo.v1'," + json.dumps(json.dumps(db)) + ");</script>"
@@ -39,6 +41,12 @@ nav = {
     "prog": 'document.querySelector(".kidcard").click();document.querySelector("[data-tab=scrProgress]").click();',
     "game": 'document.querySelector(".kidcard").click();document.getElementById("btnGo").click();'
             'setTimeout(()=>{["4","2"].forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k})))},2400);',
+    # Séance complète : répond juste à tout (sauf la 3e question), puis écran de fin.
+    "result": 'document.querySelector(".kidcard").click();document.getElementById("btnGo").click();'
+              'let last="",n=0;setInterval(()=>{const t=document.getElementById("qText").textContent;'
+              'if(!document.querySelector("#scrGame.active")||t===last)return;last=t;n++;'
+              'const r=String(eval(t.replace("×","*")));const v=n===3?"9".repeat(r.length):r;'
+              'v.split("").forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k})))},300);',
 }
 for name, js in nav.items():
     with open(os.path.join(out, f"v_{name}.html"), "w", encoding="utf-8") as f:
