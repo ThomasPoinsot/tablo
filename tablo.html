@@ -420,9 +420,18 @@ td.koc { color: var(--ko); font-weight: 800; }
   .countdown { font-size: 96px; padding-top: 30vh; }
   .card { padding: 15px; }
 }
+/* Téléphone : sablier et question répartis dans la hauteur libre au-dessus du clavier */
+@media (max-width: 620px) {
+  #scrGame .stage { display: flex; flex-direction: column; justify-content: space-evenly; align-items: stretch; }
+}
 @media (max-width: 620px) and (min-height: 760px) {
-  .qverb { font-size: 38px; }
-  .question.words { font-size: 34px; }
+  .hourglass svg { width: 80px; height: 100px; }
+  .hourglass .secs { font-size: 32px; }
+  .qtype { font-size: 15px; }
+  .qverb { font-size: 44px; margin: 16px auto 18px; }
+  .question { font-size: 52px; }
+  .question.words { font-size: 38px; }
+  .answer { font-size: 48px; min-height: 76px; }
 }
 @media (max-width: 620px) and (max-height: 700px) {
   .hourglass svg { width: 44px; height: 56px; }
@@ -803,7 +812,7 @@ td.koc { color: var(--ko); font-weight: 800; }
       sst("rire", 2, "ri", "ri"), sst("recevoir", 2, "reçoi", "recev", "reçoiv"), ir2("remplir", 1), ir2("obéir", 1),
       sst("construire", 1, "construi", "construis")
     ] },
-    { label: "pouvoir, vouloir", short: "pouvoir, vouloir", verbs: [
+    { label: "Verbes irréguliers", short: "irréguliers", verbs: [   // pouvoir, vouloir (x, x, t…)
       Object.assign({ w: 5 }, VERBS[7]), Object.assign({ w: 5 }, VERBS[6])
     ] },
     { label: "Verbes en -dre", short: "-dre", verbs: [
@@ -1335,11 +1344,8 @@ td.koc { color: var(--ko); font-weight: 800; }
       const fams = famsOf(s.type), sel = famSel(s);
       makeChips($("chipsPres"), fams.map((g, i) => ({ value: i, label: g.label })),
         (v) => sel.includes(v), (v) => toggleIn(sel, v));
-      $("presInfo").innerHTML = sel.map((i) => {   // les plus courants d'abord
-        const vs = fams[i].verbs.slice().sort((a, b) => (b.w || 1) - (a.w || 1));
-        return "<b>" + fams[i].label + "</b> (" + famEndings(fams[i]) + ") : " + vs.length + " verbe" + (vs.length > 1 ? "s" : "") +
-          (vs.length > 6 ? ", surtout les plus courants : " + vs.slice(0, 6).map((v) => v.inf).join(", ") + "…" : " : " + vs.map((v) => v.inf).join(", "));
-      }).join("<br>") + (sel.length ? "<br>À chaque question, un verbe de la famille est tiré au hasard." : "");
+      $("presInfo").innerHTML = sel.map((i) => "<b>" + fams[i].short + "</b>" +
+        (fams[i].verbs.length <= 3 ? " (" + fams[i].verbs.map((v) => v.inf).join(", ") + ")" : "") + " : " + famEndings(fams[i])).join("<br>");
     }
     makeChips($("chipsDmKind"), [{ value: "double", label: "Doubles" }, { value: "half", label: "Moitiés" }],
       (v) => s.dmKinds[v], (v) => { s.dmKinds[v] = !s.dmKinds[v]; }, "dm");
@@ -1355,9 +1361,8 @@ td.koc { color: var(--ko); font-weight: 800; }
       const seen = pool.map((f) => ({ f, st: factStats(k, f.key) })).filter((x) => x.st.m !== null);
       const weak = seen.filter((x) => x.st.m < ACQUIRED).sort((a, b) => a.st.m - b.st.m).slice(0, 8);
       const unseen = pool.length - seen.length;
-      $("modeInfo").innerHTML = "Séries de <b>" + SESSION_COUNT + " " + nn + "</b>. Les " + nn + " <b>ratés, lents ou jamais vus</b> reviennent plus souvent, et de temps en temps des " + nn + " acquis pour vérifier qu'ils le restent." +
-        (weak.length ? "<br>À travailler en priorité : <b>" + weak.map((x) => escapeHtml(shortLabel(x.f))).join(", ") + "</b>" : "") +
-        (unseen ? "<br>" + unseen + " " + noun(s.type, unseen) + " jamais vu" + (unseen > 1 ? "s" : "") + " dans cette sélection." : "") +
+      $("modeInfo").innerHTML = "Séries de <b>" + SESSION_COUNT + " " + nn + "</b> : les ratés et les nouveaux reviennent plus souvent." +
+        (weak.length ? "<br>À revoir : <b>" + weak.slice(0, 5).map((x) => escapeHtml(shortLabel(x.f))).join(", ") + "</b>" : "") +
         (!weak.length && !unseen && pool.length ? "<br>Tout est acquis dans cette sélection, bravo ! 🎉" : "");
     }
 
