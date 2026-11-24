@@ -506,7 +506,7 @@ td.koc { color: var(--ko); font-weight: 800; }
         <div class="chips" id="chipsMul"></div>
       </div>
       <div class="opts" id="optConj">
-        <h3><span>Verbes de la fiche</span><span class="links"><button data-all="conj">Tous</button><button data-none="conj">Aucun</button></span></h3>
+        <h3><span>Verbes</span><span class="links"><button data-all="conj">Tous</button><button data-none="conj">Aucun</button></span></h3>
         <div class="chips" id="chipsConj"></div>
       </div>
       <div class="opts" id="optPres">
@@ -760,7 +760,10 @@ td.koc { color: var(--ko); font-weight: 800; }
     { inf: "voir",    forms: ["voi|s", "voi|s", "voi|t", "voy|ons", "voy|ez", "voi|ent"] },
     { inf: "vouloir", forms: ["veu|x", "veu|x", "veu|t", "voul|ons", "voul|ez", "veul|ent"] },
     { inf: "pouvoir", forms: ["peu|x", "peu|x", "peu|t", "pouv|ons", "pouv|ez", "peuv|ent"] },
-    { inf: "prendre", forms: ["pren|ds", "pren|ds", "pren|d", "pren|ons", "pren|ez", "prenn|ent"] }
+    { inf: "prendre", forms: ["pren|ds", "pren|ds", "pren|d", "pren|ons", "pren|ez", "prenn|ent"] },
+    // Ajouté à la demande de l'utilisateur (pas sur la fiche, mais dans la liste officielle du cycle 2).
+    // Toujours ajouter à la fin : settings.conjVerbs stocke des index.
+    { inf: "venir",   forms: ["vien|s", "vien|s", "vien|t", "ven|ons", "ven|ez", "vienn|ent"] }
   ];
   const VERB_RANGE = range(0, VERBS.length - 1);
   // Fiche « Le présent » (Sejer) : les 4 colonnes de terminaisons, avec des verbes courants qui les suivent
@@ -769,12 +772,9 @@ td.koc { color: var(--ko); font-weight: 800; }
   // Toutes les formes d'une famille doivent avoir les mêmes terminaisons (celles du premier verbe font foi).
   // Fabriques de verbes : on écrit seulement ce qui change. Chaque verbe a un poids w (fréquence d'usage,
   // 1 = rare … 5 = très courant) : le tirage d'un verbe dans sa famille privilégie les plus utilisés.
-  // Verbes en -er (e, es, e, ons, ez, ent). fort : radical de je/tu/il/ils (appell-, achèt-) ; nous : radical de nous (mange-, commenç-).
-  const er = (inf, w, o) => {
-    o = o || {};
-    const b = inf.slice(0, -2), f = o.fort || b, n = o.nous || b;
-    return { inf, w, forms: [f + "|e", f + "|es", f + "|e", n + "|ons", b + "|ez", f + "|ent"] };
-  };
+  // Verbes en -er (e, es, e, ons, ez, ent), sans changement d'orthographe (pas de mangeons, appelle, achète :
+  // vus plus tard, au CM).
+  const er = (inf, w) => { const b = inf.slice(0, -2); return { inf, w, forms: ["e", "es", "e", "ons", "ez", "ent"].map((e) => b + "|" + e) }; };
   // s, s, t, ons, ez, ent : sing = radical de je/tu/il, plur = de nous/vous, ils = de ils (défaut plur), il = de il (défaut sing).
   const sst = (inf, w, sing, plur, ils, il) =>
     ({ inf, w, forms: [sing + "|s", sing + "|s", (il || sing) + "|t", plur + "|ons", plur + "|ez", (ils || plur) + "|ent"] });
@@ -789,28 +789,20 @@ td.koc { color: var(--ko); font-weight: 800; }
   // Fiche « Le présent » (Sejer) : les 4 colonnes de terminaisons. Les verbes choisis suivent exactement les
   // terminaisons de leur colonne (exclus : mettre « il met », ouvrir « j'ouvre », faire/dire « vous faites/dites »,
   // peindre « il peint »…). Le radical peut changer (je viens / nous venons) : il est affiché, seule la fin est tapée.
+  // Niveau CE1-CE2 : verbes courants seulement (vérifié avec l'utilisateur le 2026-11-24).
   const PRES_GROUPS = [
     { label: "Verbes en -er", short: "-er", verbs: [
       er("parler", 5), er("trouver", 5), er("donner", 5), er("aimer", 5), er("regarder", 5), er("jouer", 5),
-      er("manger", 5, { nous: "mange" }), er("passer", 4), er("penser", 4), er("demander", 4), er("arriver", 4),
-      er("chercher", 4), er("appeler", 4, { fort: "appell" }), er("tomber", 4), er("écouter", 4), er("travailler", 4),
-      er("rester", 3), er("entrer", 3), er("porter", 3), er("montrer", 3), er("chanter", 3), er("danser", 3),
-      er("marcher", 3), er("commencer", 3, { nous: "commenç" }), er("dessiner", 3), er("oublier", 3), er("aider", 3),
-      er("acheter", 3, { fort: "achèt" }), er("habiter", 2), er("raconter", 2), er("préparer", 2), er("sauter", 2),
-      er("crier", 2), er("ranger", 2, { nous: "range" }), er("fermer", 2), er("compter", 2), er("nager", 2, { nous: "nage" }),
-      er("lever", 2, { fort: "lèv" }), er("envoyer", 2, { fort: "envoi" })
+      er("passer", 4), er("penser", 4), er("demander", 4), er("arriver", 4), er("chercher", 4), er("tomber", 4),
+      er("écouter", 4), er("travailler", 4), er("rester", 3), er("entrer", 3), er("porter", 3), er("montrer", 3),
+      er("chanter", 3), er("danser", 3), er("marcher", 3), er("dessiner", 3), er("oublier", 3), er("aider", 3),
+      er("habiter", 2), er("raconter", 2), er("préparer", 2), er("sauter", 2), er("crier", 2), er("fermer", 2), er("compter", 2)
     ] },
     { label: "Verbes en -ir, -oir, -re", short: "-ir, -oir, -re", verbs: [
-      sst("voir", 5, "voi", "voy", "voi"), sst("savoir", 5, "sai", "sav"), sst("venir", 5, "vien", "ven", "vienn"),
-      sst("devoir", 5, "doi", "dev", "doiv"), sst("partir", 4, "par", "part"), sst("lire", 4, "li", "lis"),
-      sst("écrire", 4, "écri", "écriv"), ir2("finir", 4), sst("croire", 4, "croi", "croy", "croi"),
-      sst("sortir", 3, "sor", "sort"), sst("dormir", 3, "dor", "dorm"), sst("courir", 3, "cour", "cour"), ir2("choisir", 3),
-      sst("boire", 3, "boi", "buv", "boiv"), sst("connaître", 3, "connai", "connaiss", null, "connaî"),
-      sst("tenir", 3, "tien", "ten", "tienn"), sst("devenir", 3, "devien", "deven", "devienn"),
-      sst("revenir", 3, "revien", "reven", "revienn"), sst("vivre", 3, "vi", "viv"), ir2("grandir", 2), ir2("réussir", 2),
-      ir2("réfléchir", 2), sst("sentir", 2, "sen", "sent"), sst("servir", 2, "ser", "serv"), sst("suivre", 2, "sui", "suiv"),
-      sst("rire", 2, "ri", "ri"), sst("recevoir", 2, "reçoi", "recev", "reçoiv"), ir2("remplir", 1), ir2("obéir", 1),
-      sst("construire", 1, "construi", "construis")
+      sst("voir", 5, "voi", "voy", "voi"), sst("venir", 5, "vien", "ven", "vienn"), sst("savoir", 5, "sai", "sav"),
+      sst("partir", 4, "par", "part"), sst("lire", 4, "li", "lis"), sst("écrire", 4, "écri", "écriv"), ir2("finir", 4),
+      sst("sortir", 3, "sor", "sort"), sst("dormir", 3, "dor", "dorm"), sst("courir", 3, "cour", "cour"),
+      ir2("choisir", 3), ir2("grandir", 2)
     ] },
     { label: "Verbes irréguliers", short: "irréguliers", verbs: [   // pouvoir, vouloir (x, x, t…)
       Object.assign({ w: 5 }, VERBS[7]), Object.assign({ w: 5 }, VERBS[6])
@@ -896,9 +888,16 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (!Array.isArray(s.conjVerbs)) s.conjVerbs = VERB_RANGE.slice();
     s.conjVerbs = s.conjVerbs.filter((v) => VERB_RANGE.includes(v));
     if (!s.families || typeof s.families !== "object") s.families = {};
+    // Mise à jour des réglages (2026-11-24) : venir ajouté aux verbes à connaître (si tous étaient cochés),
+    // terminaisons du présent ramenées aux verbes en -er (ordre d'apprentissage : -er d'abord).
+    if (!(s.sv >= 2) && k.settings) {
+      if (Array.isArray(s.conjVerbs) && s.conjVerbs.length === 9) s.conjVerbs.push(9);
+      if (s.families.present) s.families.present = [0];
+    }
+    s.sv = 2;
     Object.keys(TENSES).forEach((te) => {
       const all = range(0, TENSES[te].families.length - 1);
-      if (!Array.isArray(s.families[te])) s.families[te] = all;
+      if (!Array.isArray(s.families[te])) s.families[te] = [0];   // par défaut : la première famille (-er)
       s.families[te] = s.families[te].filter((v) => all.includes(v));
     });
     // Temps par question, réglé pour chaque activité (avant : un seul « time » pour toutes).

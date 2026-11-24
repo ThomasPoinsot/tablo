@@ -88,7 +88,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 
 ## Conjugaison : verbes à connaître au présent
 
-- `VERBS` suit **à la lettre** la fiche Sejer « Des verbes à bien connaître au présent » fournie par l'utilisateur : avoir, être, aller, faire, dire, voir, vouloir, pouvoir, prendre. Chaque forme est écrite `"radical|terminaison"` (ex. `"voul|ons"`, `"v|ont"`). Pour avoir et être, le radical est vide : l'enfant tape la forme entière.
+- `VERBS` suit **à la lettre** la fiche Sejer « Des verbes à bien connaître au présent » fournie par l'utilisateur : avoir, être, aller, faire, dire, voir, vouloir, pouvoir, prendre. **venir** a été ajouté à la fin (2026-11-24, à la demande de l'utilisateur : il est dans la liste officielle des verbes irréguliers du cycle 2). Toujours ajouter un verbe à la fin, car `settings.conjVerbs` stocke des index. Chaque forme est écrite `"radical|terminaison"` (ex. `"voul|ons"`, `"v|ont"`). Pour avoir et être, le radical est vide : l'enfant tape la forme entière.
 - La question affiche le pronom et le radical (« nous voul… »), l'enfant tape la terminaison. Pour il/elle/on et ils/elles, le pronom est tiré au hasard (`finalize`) ; la stat reste rangée sous la personne. « je » devient « j' » devant une voyelle (`pronFor`).
 - Clavier de lettres AZERTY à l'écran (`#lpad`, avec ê pour « êtes ») et **validation par ✓** ou Entrée : pas de validation automatique, la longueur de la terminaison serait un indice. Le clavier physique marche aussi (lettres accentuées comprises).
 - Juste si la saisie est la terminaison, ou le verbe entier (radical + terminaison). Accents exigés (« etes » est faux).
@@ -101,7 +101,8 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - Fiche Sejer « Le présent » : 4 colonnes = 4 familles (`PRES_GROUPS`) : -er (e, es, e, ons, ez, ent), -ir/-oir/-re (s, s, t…), « Verbes irréguliers » (pouvoir, vouloir : x, x, t…, nommée ainsi à la demande de l'utilisateur), -dre (ds, ds, d…). Une famille partage des terminaisons identiques : être, avoir, aller, faire ne peuvent pas y entrer tels quels.
 - **Ce qui est évalué, c'est la terminaison d'une famille à une personne**, pas un verbe (demande de l'utilisateur : « acquis » = par ex. les verbes en -ir à la 3e personne). Fait `term:TEMPS:FAMILLE:PERSONNE` (24 au présent), carte familles × personnes, classement des familles.
 - À chaque question, `finalize` tire un verbe de la famille, **pondéré par sa fréquence d'usage** (`w` de 1 à 5, `pickWeighted`, demande de l'utilisateur). « Revoir mes erreurs » garde le même verbe.
-- Listes : 39 verbes en -er, 30 en -ir/-oir/-re, pouvoir et vouloir, 15 en -dre, écrits avec les fabriques `er`, `sst`, `ir2`, `dre` et `prendLike`. **Un verbe n'entre dans une famille que si ses 6 terminaisons sont exactement celles de la colonne.** Exclus : mettre (« il met »), ouvrir (« j'ouvre »), faire/dire (« vous faites »), peindre (« il peint »), aller. Le radical peut changer (je viens / nous venons) : il est affiché. Après toute modification, vérifier les terminaisons (script node sur `PRES_GROUPS`, comparaison au premier verbe).
+- **Niveau CE1-CE2** (vérifié avec l'utilisateur, d'après Eduscol : présent de être, avoir et des verbes du 1er groupe d'abord ; les verbes comme finir au CE2) : par défaut, seule la famille -er est cochée ; pas de verbes en -er à changement d'orthographe (mangeons, appelle, achète : vus au CM) ; -ir/-oir/-re réduit aux verbes courants.
+- Listes : 31 verbes en -er, 12 en -ir/-oir/-re, pouvoir et vouloir, 15 en -dre, écrits avec les fabriques `er`, `sst`, `ir2`, `dre` et `prendLike`. **Un verbe n'entre dans une famille que si ses 6 terminaisons sont exactement celles de la colonne.** Exclus : mettre (« il met »), ouvrir (« j'ouvre »), faire/dire (« vous faites »), peindre (« il peint »), aller. Le radical peut changer (je viens / nous venons) : il est affiché. Après toute modification, vérifier les terminaisons (script node sur `PRES_GROUPS`, comparaison au premier verbe).
 - **Autres temps prévus** : `TENSES` (temps → familles, `phrase` pour la consigne « Conjugue au présent le verbe »). Pour ajouter l'imparfait, par exemple : une entrée dans `TENSES`, une activité dans `TYPE_INFO` (`endings: true, tense: "imparfait"`) et dans `CATEGORIES`. Les réglages (`settings.families[temps]`), les clés de stats, la carte et le classement suivent.
 - `unitOf(type)` / `acqTxt` : l'unité de la progression (« terminaisons acquises », au féminin) ; `noun` reste « verbe » pour les questions.
 
@@ -167,7 +168,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v22`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v23`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
@@ -197,6 +198,7 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 - Après le choix de l'enfant : menu des activités par catégorie (Maths, Conjugaison). Bandeau « ← Menu » dans les activités. Le choix du type a quitté l'écran de réglages, et les onglets de type ont quitté l'écran de progression.
 - Nouvelle activité « Verbes à connaître au présent » (voir la section Conjugaison).
 - Temps par question réglé séparément pour chaque activité (`settings.times`).
+- Réglages : `settings.sv` (version). Passage à 2 le 2026-11-24 : venir ajouté si les 9 verbes étaient cochés, terminaisons ramenées à -er. Une migration future doit tester `sv` de la même façon.
 - Pour ajouter une activité : une entrée dans `TYPE_INFO` et dans `CATEGORIES`, une variable de couleur par thème, et les branches de `catalog`, `groupsOf`, `buildPool`, `finalize`, `factLabel`/`shortLabel`, `renderSetup` (options), `renderHeatmap`, `btnTarget`, `normalizeKid`.
 
 2026-11-24 — écran de réglages simplifié, à la demande de l'utilisateur :
