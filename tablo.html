@@ -119,8 +119,6 @@ h2.flex { display: flex; justify-content: space-between; align-items: center; ga
 .savenote { text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
 dialog { border: 0; border-radius: 20px; padding: 22px; background: var(--card); color: var(--ink); width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-.mictest-now { font-size: 26px; font-weight: 900; text-align: center; padding: 10px; border-radius: 14px; background: var(--chip); margin-bottom: 10px; min-height: 1.4em; }
-.mictest-log { font-size: 11px; line-height: 1.35; max-height: 38vh; overflow: auto; background: var(--chip); border-radius: 12px; padding: 8px; margin: 0 0 12px; white-space: pre-wrap; word-break: break-word; }
 dialog::backdrop { background: rgba(20,22,30,.45); }
 dialog h3 { margin: 0 0 14px; font-size: 20px; }
 dialog ol { margin: 6px 0 12px; padding-left: 22px; line-height: 1.6; }
@@ -385,7 +383,6 @@ td.koc { color: var(--ko); font-weight: 800; }
         <div class="menu" id="menu" hidden>
           <button id="btnExport">💾 Exporter la sauvegarde</button>
           <button id="btnImport">📂 Importer une sauvegarde</button>
-          <button id="btnMicTest">🎤 Tester le micro</button>
           <div class="menunote">Profils et résultats sont enregistrés automatiquement dans ce navigateur. L'export crée un fichier <b>.json</b> pour garder une copie ou passer sur un autre appareil.</div>
         </div>
       </div>
@@ -436,29 +433,12 @@ td.koc { color: var(--ko); font-weight: 800; }
         <h3><span>Tables de multiplication</span><span class="links"><button data-all="mul">Toutes</button><button data-none="mul">Aucune</button></span></h3>
         <div class="chips" id="chipsMul"></div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>2. Comment choisir les calculs ?</h2>
-      <div class="chips" id="chipsMode"></div>
       <div class="hint" id="modeInfo"></div>
     </div>
 
-    <div class="card row2">
-      <div>
-        <h2>3. Nombre de calculs</h2>
-        <div class="chips" id="chipsCount"></div>
-      </div>
-      <div>
-        <h2>4. Temps par calcul</h2>
-        <div class="chips" id="chipsTime"></div>
-      </div>
-    </div>
-
     <div class="card">
-      <h2>5. Comment répondre ?</h2>
-      <div class="chips" id="chipsVoice"></div>
-      <div class="hint" id="voiceInfo"></div>
+      <h2>2. Temps par calcul</h2>
+      <div class="chips" id="chipsTime"></div>
     </div>
 
     <button class="go" id="btnGo">C'est parti ! ⏳</button>
@@ -597,14 +577,6 @@ td.koc { color: var(--ko); font-weight: 800; }
   </form>
 </dialog>
 
-<dialog id="dlgMic">
-  <h3>🎤 Test du micro</h3>
-  <p>Dis une petite phrase avec un nombre (par exemple « ça fait cinquante-six »). On voit ici tout ce que le navigateur entend, au fil de l'eau.</p>
-  <div class="mictest-now" id="micNow">…</div>
-  <pre class="mictest-log" id="micLog"></pre>
-  <div class="dlgbtns"><button type="button" class="btn2" id="micCopy">📋 Copier le journal</button><button type="button" class="btn2 primary" id="micClose">Fermer</button></div>
-</dialog>
-
 <dialog id="dlgInstall">
   <h3>📱 Ajouter à l'écran d'accueil</h3>
   <div id="installBody" class="rules" style="color:var(--ink);font-size:15px"></div>
@@ -690,8 +662,10 @@ td.koc { color: var(--ko); font-weight: 800; }
 
   // Tables de multiplication proposées (la table du 1 est volontairement exclue, y compris les « × 1 »)
   const MUL_RANGE = range(2, 10);
-  // Choix proposés pour le nombre de calculs par séance
-  const COUNT_CHOICES = [10, 20, 40];
+  // Réglages fixes (plus de choix dans l'écran de réglages) : séries de 20, mode intelligent, réponse au clavier
+  const SESSION_COUNT = 20;
+  // Choix proposés pour le temps par calcul (secondes)
+  const TIME_CHOICES = [5, 8, 10, 15, 20];
 
   const DEFAULT_SETTINGS = {
     type: "mul",
@@ -699,9 +673,9 @@ td.koc { color: var(--ko); font-weight: 800; }
     mulTables: MUL_RANGE.slice(),
     dmKinds: { double: true, half: true },
     dmParts: [1],
-    count: 10,
+    count: SESSION_COUNT,
     time: 10,
-    mode: "random",
+    mode: "smart",
     voice: false,
     theme: "lagon"
   };
@@ -717,11 +691,14 @@ td.koc { color: var(--ko); font-weight: 800; }
     s.dmKinds = Object.assign({ double: true, half: true }, s.dmKinds);
     if (!TYPE_INFO[s.type]) s.type = "mul";
     if (!THEMES[s.theme]) s.theme = "lagon";
-    if (!MODE_LABEL[s.mode] || s.mode === "errors") s.mode = "random";
+    s.mode = "smart";
+    s.count = SESSION_COUNT;
+    s.voice = false;  // réponse à la voix retirée pour l'instant (le code reste en place)
     ["addTables", "mulTables", "dmParts"].forEach((f) => { if (!Array.isArray(s[f])) s[f] = clone(DEFAULT_SETTINGS[f]); });
     s.mulTables = s.mulTables.filter((t) => MUL_RANGE.includes(t));
-    if (!COUNT_CHOICES.includes(s.count)) {  // ancien réglage (5, 15, 30, 50…) : on prend le choix le plus proche
-      s.count = COUNT_CHOICES.reduce((a, b) => Math.abs(b - s.count) < Math.abs(a - s.count) ? b : a);
+    if (!TIME_CHOICES.includes(s.time)) {  // ancien réglage (3 s, 30 s…) : on prend le choix le plus proche
+      const t0 = Number(s.time) || 10;
+      s.time = TIME_CHOICES.reduce((a, b) => Math.abs(b - t0) < Math.abs(a - t0) ? b : a);
     }
     k.settings = s;
     k.name = String(k.name).slice(0, 20);
@@ -1093,33 +1070,19 @@ td.koc { color: var(--ko); font-weight: 800; }
       (s.dmKinds.double && s.dmKinds.half ? " ; " : "") +
       (s.dmKinds.half ? "moitiés de " + listTxt(DM_SHEET.half[p]) : "")).join("<br>");
 
-    makeChips($("chipsMode"), [{ value: "random", label: "🎲 Aléatoire" }, { value: "smart", label: "🧠 Intelligent" }],
-      (v) => s.mode === v, (v) => { s.mode = v; });
     const pool = buildPool(s);
-    if (s.mode === "random") {
-      $("modeInfo").innerHTML = "Les calculs des tables choisies sont tirés au hasard, chacun avec la même chance.";
-    } else {
+    {  // explication du mode intelligent et calculs prioritaires
       const seen = pool.map((f) => ({ f, st: factStats(k, f.key) })).filter((x) => x.st.m !== null);
       const weak = seen.filter((x) => x.st.m < ACQUIRED).sort((a, b) => a.st.m - b.st.m).slice(0, 8);
       const unseen = pool.length - seen.length;
-      $("modeInfo").innerHTML = "Propose surtout les calculs <b>ratés, lents ou jamais vus</b>, et de temps en temps des calculs acquis pour vérifier qu'ils le restent." +
+      $("modeInfo").innerHTML = "Séries de <b>" + SESSION_COUNT + " calculs</b>. Les calculs <b>ratés, lents ou jamais vus</b> reviennent plus souvent, et de temps en temps des calculs acquis pour vérifier qu'ils le restent." +
         (weak.length ? "<br>À travailler en priorité : <b>" + weak.map((x) => escapeHtml(shortLabel(x.f))).join(", ") + "</b>" : "") +
         (unseen ? "<br>" + unseen + " calcul" + (unseen > 1 ? "s" : "") + " jamais vu" + (unseen > 1 ? "s" : "") + " dans cette sélection." : "") +
         (!weak.length && !unseen && pool.length ? "<br>Tout est acquis dans cette sélection, bravo ! 🎉" : "");
     }
 
-    makeChips($("chipsCount"), COUNT_CHOICES.map((n) => ({ value: n, label: String(n) })),
-      (v) => s.count === v, (v) => { s.count = v; });
-    makeChips($("chipsTime"), [3, 5, 8, 10, 15, 20, 30].map((n) => ({ value: n, label: n + " s" })),
+    makeChips($("chipsTime"), TIME_CHOICES.map((n) => ({ value: n, label: n + " s" })),
       (v) => s.time === v, (v) => { s.time = v; });
-
-    makeChips($("chipsVoice"), [{ value: false, label: "⌨️ Clavier" }, { value: true, label: "🎤 À la voix", disabled: !SR }],
-      (v) => s.voice === v && (!v || !!SR), (v) => { s.voice = v; });
-    $("voiceInfo").innerHTML = !SR
-      ? "La réponse à la voix n'est pas disponible dans ce navigateur (utilise <b>Chrome</b>, <b>Edge</b> ou <b>Safari</b>)."
-      : s.voice
-        ? "Réponds par une <b>petite phrase</b> : « ça fait cinquante-six ». Un nombre dit tout seul est souvent ignoré par la reconnaissance. La bonne réponse est validée dès qu'elle est entendue ; le clavier reste utilisable. Le navigateur demandera l'accès au micro ; dans Chrome, la reconnaissance a besoin d'Internet."
-        : "Tape la réponse avec le pavé numérique ou le clavier.";
 
     const anyTable = pool.length > 0;
     $("btnGo").disabled = !anyTable;
@@ -1156,15 +1119,6 @@ td.koc { color: var(--ko); font-weight: 800; }
       q.words = true;
     }
     return q;
-  }
-  function randomSequence(pool, n) {
-    const out = [];
-    while (out.length < n) {
-      const batch = shuffle(pool.slice());
-      if (out.length && batch.length > 1 && batch[0].key === out[out.length - 1].key) batch.push(batch.shift());
-      out.push(...batch);
-    }
-    return out.slice(0, n).map(finalize);
   }
   // Mode intelligent : tirage pondéré par la difficulté de chaque calcul pour cet enfant.
   function smartWeight(k, f) {
@@ -1352,63 +1306,6 @@ td.koc { color: var(--ko); font-weight: 800; }
     answer(false, true);
   }
 
-  // Test du micro (menu ⋮) : journal en direct des événements de la reconnaissance, pour diagnostiquer un appareil.
-  const micTest = { rec: null, t0: 0, lines: [] };
-  function micLog(txt) {
-    micTest.lines.push(((Date.now() - micTest.t0) / 1000).toFixed(2) + " s  " + txt);
-    if (micTest.lines.length > 200) micTest.lines.shift();
-    $("micLog").textContent = micTest.lines.slice().reverse().join("\n");
-  }
-  function micTestStop() {
-    const r = micTest.rec;
-    micTest.rec = null;
-    if (r) { try { r.abort(); } catch (e) { /* ignoré */ } }
-  }
-  function micTestStart() {
-    const r = new SR();
-    r.lang = "fr-FR"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 5;
-    ["start", "audiostart", "soundstart", "speechstart", "speechend", "soundend", "audioend"].forEach((ev) => {
-      r["on" + ev] = () => { if (micTest.rec === r) micLog(ev); };
-    });
-    r.onresult = (ev) => {
-      if (micTest.rec !== r) return;
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const res = ev.results[i], alts = [];
-        for (let j = 0; j < res.length; j++) alts.push("« " + res[j].transcript.trim() + " »");
-        const nums = voiceCandidates(res[0].transcript);
-        micLog("#" + i + (res.isFinal ? " FINAL " : " partiel ") + alts.join(" / ") + (nums.length ? "  → " + nums.join(", ") : ""));
-        $("micNow").textContent = res[0].transcript.trim() || "…";
-      }
-    };
-    r.onerror = (e) => { if (micTest.rec === r) micLog("ERREUR " + e.error); };
-    r.onend = () => {
-      if (micTest.rec !== r) return;
-      micLog("end (relance)");
-      micTest.rec = null;
-      if ($("dlgMic").open) setTimeout(() => { if ($("dlgMic").open && !micTest.rec) micTestStart(); }, 50);
-    };
-    micTest.rec = r;
-    try { r.start(); } catch (e) { micLog("start impossible : " + e.message); micTest.rec = null; }
-  }
-  $("btnMicTest").addEventListener("click", () => {
-    setMenu(false);
-    micTest.t0 = Date.now(); micTest.lines = [];
-    $("micNow").textContent = "…";
-    $("micLog").textContent = "";
-    micLog("Appareil : " + navigator.userAgent + (window.__androidVersion ? " (Android " + window.__androidVersion + ")" : ""));
-    $("dlgMic").showModal();
-    if (!SR) { micLog("Pas de reconnaissance vocale dans ce navigateur."); return; }
-    micTestStart();
-  });
-  $("dlgMic").addEventListener("close", micTestStop);
-  $("micClose").addEventListener("click", () => $("dlgMic").close());
-  $("micCopy").addEventListener("click", () => {
-    const txt = micTest.lines.join("\n");
-    const done = () => { $("micCopy").textContent = "✅ Copié"; setTimeout(() => { $("micCopy").textContent = "📋 Copier le journal"; }, 1500); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => window.prompt("Copie ce texte :", txt));
-    else window.prompt("Copie ce texte :", txt);
-  });
-
   // =====================================================================
   //  Partie
   // =====================================================================
@@ -1416,7 +1313,6 @@ td.koc { color: var(--ko); font-weight: 800; }
   let rafId = 0;
   let pendingTimeout = 0;
   let lastErrors = [];
-  let lastMode = "random";
 
   function startGame(sequence, mode) {
     const s = S();
@@ -1424,7 +1320,6 @@ td.koc { color: var(--ko); font-weight: 800; }
       seq: sequence, idx: 0, results: [], points: 0, streak: 0,
       time: s.time, input: "", locked: true, mode, type: s.type, voice: s.voice && !!SR
     };
-    lastMode = mode;
     $("gPts").textContent = "0 pts";
     $("gCombo").style.visibility = "hidden";
     $("mic").classList.toggle("show", game.voice);
@@ -1562,7 +1457,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   })();
 
   document.addEventListener("keydown", (e) => {
-    if ($("dlgKid").open || $("dlgInstall").open || $("dlgMic").open || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+    if ($("dlgKid").open || $("dlgInstall").open || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
     if (!$("scrGame").classList.contains("active")) {
       if (e.key === "Enter" && $("scrSetup").classList.contains("active") && !$("btnGo").disabled) {
         e.preventDefault(); $("btnGo").click();
@@ -1693,10 +1588,10 @@ td.koc { color: var(--ko); font-weight: 800; }
     const s = S();
     const pool = buildPool(s);
     if (!pool.length) return goSetup();
-    startGame(mode === "smart" ? smartSequence(pool, s.count, kid()) : randomSequence(pool, s.count), mode);
+    startGame(smartSequence(pool, SESSION_COUNT, kid()), "smart");
   }
-  $("btnGo").addEventListener("click", () => launch(S().mode));
-  $("btnAgain").addEventListener("click", () => launch(lastMode === "errors" ? S().mode : lastMode));
+  $("btnGo").addEventListener("click", launch);
+  $("btnAgain").addEventListener("click", launch);
   $("btnErrors").addEventListener("click", () => {
     if (lastErrors.length) startGame(shuffle(lastErrors.map(finalize)), "errors");
   });
@@ -1887,10 +1782,42 @@ td.koc { color: var(--ko); font-weight: 800; }
   $("installClose").addEventListener("click", () => $("dlgInstall").close());
 
   // =====================================================================
+  //  Inactivité : après 30 min sans utilisation, on recharge la page
+  //  (pour récupérer la dernière version de l'appli). Au redémarrage :
+  //  plusieurs enfants → choix de l'enfant ; un seul → on reste où on était.
+  // =====================================================================
+  const IDLE_MS = 30 * 60 * 1000;
+  const RESUME_KEY = "tablo.resume";
+  let lastActivity = Date.now();
+  function touchActivity() { lastActivity = Date.now(); }
+  ["pointerdown", "touchstart", "mousedown", "keydown", "wheel", "scroll"].forEach((ev) =>
+    window.addEventListener(ev, touchActivity, { capture: true, passive: true }));
+  function checkIdle() {
+    if (Date.now() - lastActivity < IDLE_MS) return;
+    touchActivity();
+    const cur = document.querySelector(".screen.active");
+    try { sessionStorage.setItem(RESUME_KEY, cur ? cur.id : ""); } catch (e) { /* ignoré */ }
+    if (game) stopGame();
+    location.reload();
+  }
+  setInterval(checkIdle, 30 * 1000);
+  // Une tablette en veille suspend les minuteries : on vérifie aussi au retour sur l'appli.
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkIdle(); });
+  window.addEventListener("focus", checkIdle);
+  window.addEventListener("pageshow", checkIdle);
+
+  // =====================================================================
   //  Démarrage
   // =====================================================================
   applyTheme(kid() ? kid().settings.theme : "lagon");
   renderKids();
+  (function resumeAfterIdle() {  // rechargement après inactivité, cf. checkIdle
+    let was = "";
+    try { was = sessionStorage.getItem(RESUME_KEY) || ""; sessionStorage.removeItem(RESUME_KEY); } catch (e) { /* ignoré */ }
+    if (!was || db.kids.length !== 1 || !kid()) return;
+    if (was === "scrProgress") goProgress();
+    else if (was !== "scrKids") goSetup();
+  })();
   window.__tablo = { parseFrNumber, parseFrNumbers, voiceHeardExpected };  // utile pour tester la reconnaissance
 })();
 </script>

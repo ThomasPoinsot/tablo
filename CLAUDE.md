@@ -47,8 +47,8 @@ db = { kids: [Kid], currentId: "id" }
 Kid = {
   id, name (≤ 20 car.), avatar (emoji de AVATARS), created,
   settings: { type: "add"|"mul"|"dm", addTables: [0..10], mulTables: [2..10],
-              dmKinds: {double, half}, dmParts: [1..3], count (10 | 20 | 40, constante COUNT_CHOICES), time (s),
-              mode: "random"|"smart", voice: bool, theme: "lagon"|"bonbon"|"arcade" },
+              dmKinds: {double, half}, dmParts: [1..3], count (toujours 20, SESSION_COUNT), time (5|8|10|15|20 s, TIME_CHOICES),
+              mode: toujours "smart", voice: toujours false, theme: "lagon"|"bonbon"|"arcade" },
   history: [{ d (timestamp), type, mode: "random"|"smart", n, time, good, note, pts }],  // plus récent en premier, max 200
   records: { "type|mode|n|time": points },
   facts:   { factKey: [[ok 0|1, secondes, (1 si révision)], ...] }  // 10 derniers essais par calcul, plus ancien en premier
@@ -109,12 +109,12 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - Tolérance (`voiceCandidates` / `voiceHeardExpected`, exposé dans `window.__tablo`) : sons proches `VOICE_ALIASES` (oui→huit, si→six, cette→sept, vin→vingt, sans→cent…) et combinaisons de nombres voisins (« 50 6 » → 56, « 5 6 » → 56, « 300 50 » → 350). « de » est neutralisé pour ne pas compter 2 dans « moitié de… ». Éviter d'ajouter des mots courants comme alias.
 - `voice.used` mémorise l'index du résultat déjà utilisé : sa version finale tardive ne compte pas pour le calcul suivant.
 - `parseFrNumbers` lit les textes mixtes (« cinquante 6 » → 50, 6, puis recollés en 56 par `voiceCandidates`).
-- **Test du micro** (menu ⋮ → « 🎤 Tester le micro », `dlgMic`) : journal horodaté de tous les événements (start, audiostart, speechstart, résultats partiels/finaux avec alternatives et nombres reconnus, erreurs, end) et bouton « Copier le journal ». C'est l'outil pour diagnostiquer un appareil à distance : demander à l'utilisateur de coller le journal.
+- **Retiré le 2026-11-24** : le choix « Comment répondre ? » et le test du micro (menu ⋮, `dlgMic`, journal des événements). `normalizeKid()` force `voice: false`. Le moteur de reconnaissance (`voiceStart`, `onVoiceResult`…) reste dans le code, inactif, pour pouvoir remettre la voix plus tard (le test du micro est dans l'historique git, commit 96310c4).
 - `parseFrNumbers()` renvoie tous les nombres prononcés ; `parseFrNumber()` renvoie le **dernier** nombre prononcé, écrit en chiffres ou en toutes lettres (quatre-vingt-dix-neuf, soixante et onze, mille, plus quelques homophones comme « sans » pour cent). Il est exposé sous `window.__tablo` pour les tests.
 - Une réponse vocale retire 0,6 s au temps mesuré, pour compenser la latence de la reconnaissance.
 - Navigateurs : Chrome, Edge et Safari, mais pas Firefox. Chrome envoie l'audio aux serveurs de Google, donc il faut Internet.
 
-- **Statut (2026-11-22)** : sur la tablette Android 8.1, ça marche pour des phrases mais pas pour un nombre dit seul. L'utilisateur pense qu'il n'y a pas de vraie solution avec la Web Speech API, et je suis d'accord : impossible de « biaiser » Chrome vers des nombres. Options proposées, **décision en attente** :
+- **Statut (2026-11-22)** : sur la tablette Android 8.1, ça marche pour des phrases mais pas pour un nombre dit seul. L'utilisateur pense qu'il n'y a pas de vraie solution avec la Web Speech API, et je suis d'accord : impossible de « biaiser » Chrome vers des nombres. Options proposées, **décision prise le 2026-11-24 : voix retirée de l'interface « pour l'instant »** (option 2) :
   1. garder la voix avec la consigne « ça fait … » (c'est ce qui est en ligne) et voir à l'usage ;
   2. retirer le mode vocal, ou le cacher dans le menu ⋮ comme option expérimentale ;
   3. reconnaissance hors ligne (Vosk, modèle d'environ 40 Mo) : déconseillée, car elle casse le fichier unique et elle est trop lourde pour la tablette.
@@ -138,7 +138,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v16`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v17`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
@@ -158,6 +158,13 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 - Pour tester le service worker ou le manifeste, il faut servir en http (`python3 -m http.server`), pas en `file://`.
 
 ## Évolutions récentes (toutes en ligne)
+
+2026-11-24 — écran de réglages simplifié, à la demande de l'utilisateur :
+- Plus de choix « Comment choisir les calculs » : toujours le mode intelligent. Le texte d'explication et les calculs prioritaires (`modeInfo`) sont affichés sous le choix des tables.
+- Plus de choix « Nombre de calculs » : toujours des séries de 20 (`SESSION_COUNT`).
+- Plus de choix « Comment répondre » ni de test du micro : réponse au clavier seulement (voir Voix).
+- Temps par calcul : 5, 8, 10, 15, 20 s (3 s et 30 s retirés ; `normalizeKid()` ramène les anciens réglages au plus proche).
+- Inactivité (`checkIdle`) : après 30 min sans interaction (vérifié toutes les 30 s et au retour de veille via `visibilitychange`/`focus`), la page est **rechargée** pour récupérer la dernière version. Au redémarrage (`resumeAfterIdle`, via `sessionStorage` `tablo.resume`) : plusieurs enfants → écran de choix de l'enfant ; un seul → on revient sur l'écran d'avant (Progression, sinon Réglages).
 
 2026-11-23 :
 - Couleurs de maîtrise : une couleur franche par niveau (rouge, orange, jaune, vert) au lieu du dégradé, où « en cours » et « acquis » se confondaient. Légende en pastilles.
