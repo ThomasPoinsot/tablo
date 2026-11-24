@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Tablo</title>
-<meta name="description" content="Révise les tables d'addition, de multiplication, les doubles et les moitiés, et la conjugaison des verbes à connaître.">
+<meta name="description" content="Révise les tables d'addition, de multiplication, les doubles et les moitiés, et la conjugaison du présent.">
 <meta name="theme-color" content="#0ea5e9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -142,13 +142,17 @@ dialog label { font-weight: 700; font-size: 14px; display: block; margin-bottom:
 .dlgbtns .danger { margin-right: auto; color: var(--ko); border-color: color-mix(in srgb, var(--ko) 40%, var(--line)); }
 
 /* ---- Barre enfant ---- */
-.kidbar { display: none; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-.kidbar.show { display: flex; }
+.kidbar { display: none; margin-bottom: 12px; }
+.kidbar.show { display: block; }
+.kidgrp { display: none; align-items: center; gap: 8px; min-width: 0; }
+.kidgrp.show { display: flex; }
+header.withkid #tagline { display: none; }
+.topright { min-width: 0; }
 .tl-short { display: none; }
 .kidchip { display: flex; align-items: center; gap: 8px; background: var(--card); border: 0; border-radius: 999px; padding: 4px 14px 4px 4px; box-shadow: var(--shadow); font-weight: 800; font-size: 17px; }
 .kidchip .sw { color: var(--muted); font-size: 14px; }
-.tabs { display: flex; background: var(--chip); border-radius: 999px; padding: 4px; gap: 4px; }
-.tab { white-space: nowrap; border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; font-weight: 800; font-size: 15px; color: var(--muted); }
+.tabs { display: flex; background: var(--chip); border-radius: 999px; padding: 4px; gap: 4px; width: 100%; }
+.tab { flex: 1; white-space: nowrap; border: 0; background: transparent; padding: 9px 14px; border-radius: 999px; font-weight: 800; font-size: 15px; color: var(--muted); }
 .tab.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 
 /* ---- Réglages ---- */
@@ -206,7 +210,6 @@ table.hist td.num, table.hist th.num { text-align: right; font-variant-numeric: 
 .acttitle { font-weight: 800; font-size: 17px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acttitle .asym { margin-right: 6px; }
 .acttitle small { color: var(--muted); font-weight: 700; font-size: 13px; margin-right: 4px; }
-.kidbar.inmenu .tabs { display: none; }
 
 /* ---- Jeu ---- */
 .gamebar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: nowrap; }
@@ -316,7 +319,8 @@ td.koc { color: var(--ko); font-weight: 800; }
   font-variant-numeric: tabular-nums; padding: 0; display: flex; align-items: center; justify-content: center;
   transition: transform .1s;
 }
-.hm.conj .hc { aspect-ratio: auto; min-height: 34px; padding: 0 2px; overflow: hidden; }
+.hm.conj .hc { aspect-ratio: auto; min-height: 34px; padding: 0 2px; overflow: hidden; white-space: nowrap; }
+.hm.conj .hgrp { grid-column: 1 / -1; font-size: 13px; font-weight: 800; color: var(--conj); margin: 8px 0 2px; }
 .hc.none { background: var(--none); color: var(--muted); font-weight: 600; }
 .hc:hover { transform: scale(1.12); position: relative; z-index: 1; }
 .hc.sel { outline: 3px solid var(--ink); outline-offset: 1px; }
@@ -376,6 +380,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   .hide-sm { display: none; }
   .summary { grid-template-columns: repeat(2, 1fr); }
   .hc { font-size: 10px; min-height: 22px; border-radius: 4px; }
+  .hm.conj .hc .hs { display: none; }   /* téléphone : seule la terminaison tient dans la case */
   .hm { gap: 2px; }
   .hmrow { grid-template-columns: 1fr; gap: 4px; }
   .hml { text-align: left; }
@@ -385,16 +390,19 @@ td.koc { color: var(--ko); font-weight: 800; }
   .rank .pct { grid-column: 3; grid-row: 1; }
   .rank .lvbar { grid-column: 2 / 4; grid-row: 2; }
   .av { width: 74px; height: 74px; font-size: 42px; }
-  .tab { padding: 7px 9px; font-size: 13px; }
-  .tabs { padding: 3px; gap: 2px; flex: none; }
+  .tab { padding: 8px 6px; font-size: 15px; }
+  .tabs { padding: 3px; gap: 3px; }
+  .logo { font-size: 25px; }
+  header.top { gap: 6px; margin-bottom: 12px; }
+  .topright { gap: 4px; }
+  .dots { width: 32px; }
   .kidchip .sw { display: none; }
   .kidchip { gap: 6px; }
   .kbtheme { width: 36px; height: 36px; font-size: 17px; }
   .tl-long { display: none; }
   .tl-short { display: inline; }
-  .kidbar { flex-wrap: nowrap; }
   .kidchip { font-size: 15px; padding-right: 10px; min-width: 0; }
-  .kidchip #kbName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
+  .kidchip #kbName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 96px; }
   .pill { padding: 6px 11px; font-size: 15px; }
   .quit { padding: 5px 11px; }
   #scrGame .card { padding: 14px 8px; }
@@ -430,7 +438,9 @@ td.koc { color: var(--ko); font-weight: 800; }
   <header class="top">
     <div class="logo">Tab<span>lo</span></div>
     <div class="topright">
-      <span class="subtle hide-sm">Révise tes leçons !</span>
+      <span class="subtle hide-sm" id="tagline">Révise tes leçons !</span>
+      <div class="kidgrp" id="kidgrp"><button class="kidchip" id="kbSwitch" title="Changer d'enfant"><span class="av sm" id="kbAv"></span><span id="kbName"></span><span class="sw">⇄</span></button>
+      <button class="kbtheme" id="kbTheme" title="Changer de thème">🎨</button></div>
       <div class="menuwrap">
         <button class="dots" id="btnMenu" aria-label="Menu" aria-haspopup="true" aria-expanded="false">⋮</button>
         <div class="menu" id="menu" hidden>
@@ -443,12 +453,11 @@ td.koc { color: var(--ko); font-weight: 800; }
   </header>
   <input type="file" id="fileImport" accept=".json,application/json" hidden>
 
+  <!-- Onglets de l'activité, sur toute la largeur (le prénom et 🎨 sont dans l'en-tête) -->
   <div class="kidbar" id="kidbar">
-    <div style="display:flex;gap:8px;align-items:center;min-width:0"><button class="kidchip" id="kbSwitch" title="Changer d'enfant"><span class="av sm" id="kbAv"></span><span id="kbName"></span><span class="sw">⇄</span></button>
-    <button class="kbtheme" id="kbTheme" title="Changer de thème">🎨</button></div>
     <div class="tabs">
-      <button class="tab" data-tab="scrSetup">🎯 <span class="tl-long">S'entraîner</span><span class="tl-short">Jouer</span></button>
-      <button class="tab" data-tab="scrProgress">📊 <span class="tl-long">Progression</span><span class="tl-short">Progrès</span></button>
+      <button class="tab" data-tab="scrSetup">🎯 S'entraîner</button>
+      <button class="tab" data-tab="scrProgress">📊 Progression</button>
     </div>
   </div>
   <div class="actbar" id="actbar"><button class="backbtn" id="btnBackMenu" title="Revenir au menu des activités">← Menu</button><div class="acttitle" id="actTitle"></div></div>
@@ -490,6 +499,11 @@ td.koc { color: var(--ko); font-weight: 800; }
       <div class="opts" id="optConj">
         <h3><span>Verbes de la fiche</span><span class="links"><button data-all="conj">Tous</button><button data-none="conj">Aucun</button></span></h3>
         <div class="chips" id="chipsConj"></div>
+      </div>
+      <div class="opts" id="optPres">
+        <h3><span>Familles de verbes</span><span class="links"><button data-all="fam">Toutes</button><button data-none="fam">Aucune</button></span></h3>
+        <div class="chips" id="chipsPres"></div>
+        <div class="hint" id="presInfo"></div>
       </div>
       <div class="hint" id="modeInfo"></div>
     </div>
@@ -688,15 +702,25 @@ td.koc { color: var(--ko); font-weight: 800; }
     add:  { label: "Additions", title: "Tables d'addition", sym: "+", color: "var(--add)", noun: ["calcul", "calculs"] },
     dm:   { label: "Doubles & moitiés", title: "Doubles & moitiés", sym: "½", color: "var(--dm)", noun: ["calcul", "calculs"] },
     mul:  { label: "Multiplications", title: "Tables de multiplication", sym: "×", color: "var(--mul)", noun: ["calcul", "calculs"] },
-    conj: { label: "Verbes au présent", title: "Verbes à connaître au présent", sym: "Aa", color: "var(--conj)", noun: ["verbe", "verbes"] }
+    conj: { label: "Verbes au présent", title: "Verbes à connaître au présent", sym: "Aa", color: "var(--conj)", noun: ["verbe", "verbes"], verbs: true },
+    // Activité « terminaisons » : une par temps (tense → TENSES). Pour l'imparfait, le futur… : ajouter le temps
+    // dans TENSES, puis une entrée ici (ex. imp: { …, endings: true, tense: "imparfait" }) et dans CATEGORIES.
+    pres: { label: "Terminaisons", title: "Terminaisons du présent", sym: "-s", color: "var(--conj)", noun: ["verbe", "verbes"], verbs: true, endings: true, tense: "present",
+            unit: { s: "terminaison", p: "terminaisons", fem: true } }
   };
+  const isVerbAct = (type) => !!(TYPE_INFO[type] && TYPE_INFO[type].verbs);
+  const isEndAct = (type) => !!(TYPE_INFO[type] && TYPE_INFO[type].endings);
   // Menu des activités, classées par catégorie (ajouter ici les prochaines activités).
   const CATEGORIES = [
     { label: "Maths", icon: "🔢", types: ["add", "dm", "mul"] },
-    { label: "Conjugaison", icon: "✏️", types: ["conj"] }
+    { label: "Conjugaison", icon: "✏️", types: ["conj", "pres"] }
   ];
   const catOf = (type) => CATEGORIES.find((c) => c.types.includes(type)) || CATEGORIES[0];
   const noun = (type, n) => TYPE_INFO[type].noun[n > 1 ? 1 : 0];
+  // Ce qui est évalué dans la progression (par défaut : la même chose que noun), avec l'accord de « acquis ».
+  const unitOf = (type) => TYPE_INFO[type].unit || { s: noun(type, 1), p: noun(type, 2), fem: false };
+  const acqTxt = (type, n) => { const u = unitOf(type); return (n > 1 ? u.p : u.s) + " " + (u.fem ? (n > 1 ? "acquises" : "acquise") : "acquis"); };
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const Q_LABEL = { add: "Addition", mul: "Multiplication", double: "Double", half: "Moitié" };
   const Q_COLOR = { add: "var(--add)", mul: "var(--mul)", double: "var(--dm)", half: "var(--dm)", conj: "var(--conj)" };
   const MODE_LABEL = { random: "Aléatoire", smart: "Intelligent", errors: "Erreurs" };
@@ -730,6 +754,80 @@ td.koc { color: var(--ko); font-weight: 800; }
     { inf: "prendre", forms: ["pren|ds", "pren|ds", "pren|d", "pren|ons", "pren|ez", "prenn|ent"] }
   ];
   const VERB_RANGE = range(0, VERBS.length - 1);
+  // Fiche « Le présent » (Sejer) : les 4 colonnes de terminaisons, avec des verbes courants qui les suivent
+  // exactement. Ce qu'on évalue, c'est la terminaison d'une FAMILLE à une personne (ex. verbes en -ir à « il » → -t) :
+  // stat sous la clé term:TEMPS:FAMILLE:PERSONNE, et à chaque question un verbe de la famille est tiré au hasard.
+  // Toutes les formes d'une famille doivent avoir les mêmes terminaisons (celles du premier verbe font foi).
+  // Fabriques de verbes : on écrit seulement ce qui change. Chaque verbe a un poids w (fréquence d'usage,
+  // 1 = rare … 5 = très courant) : le tirage d'un verbe dans sa famille privilégie les plus utilisés.
+  // Verbes en -er (e, es, e, ons, ez, ent). fort : radical de je/tu/il/ils (appell-, achèt-) ; nous : radical de nous (mange-, commenç-).
+  const er = (inf, w, o) => {
+    o = o || {};
+    const b = inf.slice(0, -2), f = o.fort || b, n = o.nous || b;
+    return { inf, w, forms: [f + "|e", f + "|es", f + "|e", n + "|ons", b + "|ez", f + "|ent"] };
+  };
+  // s, s, t, ons, ez, ent : sing = radical de je/tu/il, plur = de nous/vous, ils = de ils (défaut plur), il = de il (défaut sing).
+  const sst = (inf, w, sing, plur, ils, il) =>
+    ({ inf, w, forms: [sing + "|s", sing + "|s", (il || sing) + "|t", plur + "|ons", plur + "|ez", (ils || plur) + "|ent"] });
+  const ir2 = (inf, w) => { const b = inf.slice(0, -2); return sst(inf, w, b + "i", b + "iss"); };      // finir, choisir…
+  // ds, ds, d, ons, ez, ent : attendre → atten|ds, attend|ons ; famille de prendre → pren|ds, pren|ons, prenn|ent.
+  const dre = (inf, w) => {
+    const b = inf.slice(0, -3);
+    return { inf, w, forms: [b + "|ds", b + "|ds", b + "|d", b + "d|ons", b + "d|ez", b + "d|ent"] };
+  };
+  const prendLike = (pre, w) => ({ inf: pre + "prendre", w, forms: ["pren|ds", "pren|ds", "pren|d", "pren|ons", "pren|ez", "prenn|ent"].map((x) => pre + x) });
+
+  // Fiche « Le présent » (Sejer) : les 4 colonnes de terminaisons. Les verbes choisis suivent exactement les
+  // terminaisons de leur colonne (exclus : mettre « il met », ouvrir « j'ouvre », faire/dire « vous faites/dites »,
+  // peindre « il peint »…). Le radical peut changer (je viens / nous venons) : il est affiché, seule la fin est tapée.
+  const PRES_GROUPS = [
+    { label: "Verbes en -er", short: "-er", verbs: [
+      er("parler", 5), er("trouver", 5), er("donner", 5), er("aimer", 5), er("regarder", 5), er("jouer", 5),
+      er("manger", 5, { nous: "mange" }), er("passer", 4), er("penser", 4), er("demander", 4), er("arriver", 4),
+      er("chercher", 4), er("appeler", 4, { fort: "appell" }), er("tomber", 4), er("écouter", 4), er("travailler", 4),
+      er("rester", 3), er("entrer", 3), er("porter", 3), er("montrer", 3), er("chanter", 3), er("danser", 3),
+      er("marcher", 3), er("commencer", 3, { nous: "commenç" }), er("dessiner", 3), er("oublier", 3), er("aider", 3),
+      er("acheter", 3, { fort: "achèt" }), er("habiter", 2), er("raconter", 2), er("préparer", 2), er("sauter", 2),
+      er("crier", 2), er("ranger", 2, { nous: "range" }), er("fermer", 2), er("compter", 2), er("nager", 2, { nous: "nage" }),
+      er("lever", 2, { fort: "lèv" }), er("envoyer", 2, { fort: "envoi" })
+    ] },
+    { label: "Verbes en -ir, -oir, -re", short: "-ir, -oir, -re", verbs: [
+      sst("voir", 5, "voi", "voy", "voi"), sst("savoir", 5, "sai", "sav"), sst("venir", 5, "vien", "ven", "vienn"),
+      sst("devoir", 5, "doi", "dev", "doiv"), sst("partir", 4, "par", "part"), sst("lire", 4, "li", "lis"),
+      sst("écrire", 4, "écri", "écriv"), ir2("finir", 4), sst("croire", 4, "croi", "croy", "croi"),
+      sst("sortir", 3, "sor", "sort"), sst("dormir", 3, "dor", "dorm"), sst("courir", 3, "cour", "cour"), ir2("choisir", 3),
+      sst("boire", 3, "boi", "buv", "boiv"), sst("connaître", 3, "connai", "connaiss", null, "connaî"),
+      sst("tenir", 3, "tien", "ten", "tienn"), sst("devenir", 3, "devien", "deven", "devienn"),
+      sst("revenir", 3, "revien", "reven", "revienn"), sst("vivre", 3, "vi", "viv"), ir2("grandir", 2), ir2("réussir", 2),
+      ir2("réfléchir", 2), sst("sentir", 2, "sen", "sent"), sst("servir", 2, "ser", "serv"), sst("suivre", 2, "sui", "suiv"),
+      sst("rire", 2, "ri", "ri"), sst("recevoir", 2, "reçoi", "recev", "reçoiv"), ir2("remplir", 1), ir2("obéir", 1),
+      sst("construire", 1, "construi", "construis")
+    ] },
+    { label: "pouvoir, vouloir", short: "pouvoir, vouloir", verbs: [
+      Object.assign({ w: 5 }, VERBS[7]), Object.assign({ w: 5 }, VERBS[6])
+    ] },
+    { label: "Verbes en -dre", short: "-dre", verbs: [
+      Object.assign({ w: 5 }, VERBS[8]), prendLike("ap", 4), prendLike("com", 4), dre("attendre", 4), dre("entendre", 4),
+      dre("répondre", 4), dre("rendre", 4), dre("perdre", 4), dre("descendre", 3), dre("vendre", 3), dre("défendre", 2),
+      prendLike("sur", 1), dre("mordre", 1), dre("tendre", 1), dre("fondre", 1)
+    ] }
+  ];
+  // Tirage pondéré par la fréquence d'usage (w).
+  function pickWeighted(list) {
+    const tot = list.reduce((x, v) => x + (v.w || 1), 0);
+    let r = Math.random() * tot;
+    for (let i = 0; i < list.length; i++) { r -= list[i].w || 1; if (r <= 0) return list[i]; }
+    return list[list.length - 1];
+  }
+  // Temps de conjugaison. phrase : pour la consigne « Conjugue au présent le verbe ».
+  const TENSES = {
+    present: { label: "présent", phrase: "au présent", families: PRES_GROUPS }
+  };
+  const famsOf = (type) => TENSES[TYPE_INFO[type].tense].families;
+  const famOf = (f) => TENSES[f.tense].families[f.family];
+  // Terminaisons d'une famille (lues sur son premier verbe) : « e, es, e, ons, ez, ent ».
+  const famEnding = (g, p) => g.verbs[0].forms[p].split("|")[1];
+  const famEndings = (g) => g.verbs[0].forms.map((fm) => fm.split("|")[1]).join(", ");
   const PERSONS = ["je", "tu", "il", "nous", "vous", "ils"];   // en-têtes de la carte
   const PRONOUNS = [["je"], ["tu"], ["il", "elle", "on"], ["nous"], ["vous"], ["ils", "elles"]];
   // « je » devient « j' » devant une voyelle (j'ai).
@@ -763,6 +861,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     dmKinds: { double: true, half: true },
     dmParts: [1],
     conjVerbs: VERB_RANGE.slice(),
+    families: {},   // par temps : index des familles choisies (complété par normalizeKid)
     count: SESSION_COUNT,
     mode: "smart",
     voice: false,
@@ -787,9 +886,16 @@ td.koc { color: var(--ko); font-weight: 800; }
     s.mulTables = s.mulTables.filter((t) => MUL_RANGE.includes(t));
     if (!Array.isArray(s.conjVerbs)) s.conjVerbs = VERB_RANGE.slice();
     s.conjVerbs = s.conjVerbs.filter((v) => VERB_RANGE.includes(v));
+    if (!s.families || typeof s.families !== "object") s.families = {};
+    Object.keys(TENSES).forEach((te) => {
+      const all = range(0, TENSES[te].families.length - 1);
+      if (!Array.isArray(s.families[te])) s.families[te] = all;
+      s.families[te] = s.families[te].filter((v) => all.includes(v));
+    });
     // Temps par question, réglé pour chaque activité (avant : un seul « time » pour toutes).
     const t0 = Number(s.time) || 10;
     s.times = Object.assign({ add: t0, dm: t0, mul: t0, conj: 15 }, (k.settings && k.settings.times) || {});
+    Object.keys(TYPE_INFO).forEach((ty) => { if (s.times[ty] === undefined) s.times[ty] = isVerbAct(ty) ? 15 : t0; });
     Object.keys(TYPE_INFO).forEach((ty) => {   // ancien réglage (3 s, 30 s…) : on prend le choix le plus proche
       const x = Number(s.times[ty]) || 10;
       s.times[ty] = TIME_CHOICES.reduce((a, b) => Math.abs(b - x) < Math.abs(a - x) ? b : a);
@@ -826,6 +932,7 @@ td.koc { color: var(--ko); font-weight: 800; }
   const kid = () => db.kids.find((k) => k.id === db.currentId) || null;
   const S = () => kid().settings;
   const timeOf = (s) => s.times[s.type];
+  const famSel = (s) => s.families[TYPE_INFO[s.type].tense];   // familles choisies (activité « terminaisons »)
 
   $("btnExport").addEventListener("click", () => {
     const data = { app: "Tablo", version: 1, exported: new Date().toISOString(), kids: db.kids, currentId: db.currentId };
@@ -969,8 +1076,9 @@ td.koc { color: var(--ko); font-weight: 800; }
     document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
     const withBar = ["scrMenu", "scrSetup", "scrProgress", "scrResult"].includes(id) && kid();
     const inAct = withBar && id !== "scrMenu";
-    $("kidbar").classList.toggle("show", !!withBar);
-    $("kidbar").classList.toggle("inmenu", id === "scrMenu");
+    $("kidgrp").classList.toggle("show", !!withBar);
+    document.querySelector("header.top").classList.toggle("withkid", !!withBar);
+    $("kidbar").classList.toggle("show", !!inAct);
     $("actbar").classList.toggle("show", !!inAct);
     if (inAct) {
       const ty = S().type, ti = TYPE_INFO[ty];
@@ -1023,9 +1131,15 @@ td.koc { color: var(--ko); font-weight: 800; }
     } else if (type === "conj") {
       VERBS.forEach((v, vi) => v.forms.forEach((fm, p) => {
         const parts = fm.split("|");
-        out.push({ key: "conj:" + v.inf + ":" + p, type: "conj", inf: v.inf, person: p, stem: parts[0], answer: parts[1],
-          group: "conj" + vi, row: vi, col: p });
+        out.push({ key: "conj:" + v.inf + ":" + p, type: "conj", tense: "present", inf: v.inf, person: p, stem: parts[0], answer: parts[1],
+          group: "conj" + vi, row: vi, col: p, set: vi });
       }));
+    } else if (isEndAct(type)) {
+      // Un fait par famille et par personne ; le verbe est choisi au moment de poser la question (finalize).
+      const te = TYPE_INFO[type].tense;
+      famsOf(type).forEach((g, gi) => range(0, 5).forEach((p) =>
+        out.push({ key: "term:" + te + ":" + gi + ":" + p, type: "conj", tense: te, family: gi, person: p, answer: famEnding(g, p),
+          group: type + gi, row: gi, col: p, set: gi })));
     } else {
       ["double", "half"].forEach((kind) => [1, 2, 3].forEach((p) => DM_SHEET[kind][p].forEach((n) =>
         out.push({ key: kind + ":" + n, type: kind, a: n, answer: kind === "double" ? 2 * n : n / 2, group: kind + p, part: p }))));
@@ -1036,6 +1150,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (type === "add") return range(0, 10).map((t) => ({ id: "add" + t, label: "Table +" + t, value: t }));
     if (type === "mul") return MUL_RANGE.map((t) => ({ id: "mul" + t, label: "Table ×" + t, value: t }));
     if (type === "conj") return VERBS.map((v, i) => ({ id: "conj" + i, label: "Verbe " + v.inf, value: i }));
+    if (isEndAct(type)) return famsOf(type).map((g, i) => ({ id: type + i, label: g.label, value: i }));
     const g = [];
     [["double", "Doubles"], ["half", "Moitiés"]].forEach(([kind, name]) =>
       [1, 2, 3].forEach((p) => g.push({ id: kind + p, label: name + " · partie " + p, kind, part: p })));
@@ -1045,12 +1160,17 @@ td.koc { color: var(--ko); font-weight: 800; }
     return catalog(s.type).filter((f) => {
       if (s.type === "add") return s.addTables.includes(f.row);
       if (s.type === "mul") return s.mulTables.includes(f.row);
-      if (s.type === "conj") return s.conjVerbs.includes(f.row);
+      if (s.type === "conj") return s.conjVerbs.includes(f.set);
+      if (isEndAct(s.type)) return famSel(s).includes(f.set);
       return s.dmKinds[f.type] && s.dmParts.includes(f.part);
     });
   }
   const conjForm = (f) => f.stem + f.answer;
+  const isFamily = (f) => f.family !== undefined;
+  // « il, elle, on » ou « je / j' » selon la personne
+  const pronList = (p) => PRONOUNS[p].join(", ");
   function factLabel(f) {
+    if (isFamily(f)) return famOf(f).label + " (" + TENSES[f.tense].label + ") : " + pronList(f.person) + " … -" + f.answer;
     if (f.type === "conj") return f.inf + " : " + withPron(f.person === 0 ? pronFor(0, conjForm(f)) : PRONOUNS[f.person].join(", "), conjForm(f));
     if (f.type === "add") return f.a + " + " + f.b + " = " + f.answer;
     if (f.type === "mul") return f.a + " × " + f.b + " = " + f.answer;
@@ -1058,6 +1178,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     return "Moitié de " + fmtN(f.a) + " = " + fmtN(f.answer);
   }
   const shortLabel = (f) => f.type === "add" ? f.a + "+" + f.b : f.type === "mul" ? f.a + "×" + f.b
+    : isFamily(f) ? PRONOUNS[f.person][0] + " -" + f.answer + " (" + famOf(f).short + ")"
     : f.type === "conj" ? withPron(pronFor(f.person, conjForm(f)), conjForm(f))
     : (f.type === "double" ? "double de " : "moitié de ") + fmtN(f.a);
 
@@ -1200,6 +1321,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     const nn = noun(s.type, 2), n1 = noun(s.type, 1);
     $("optAdd").style.display = s.type === "add" ? "" : "none";
     $("optConj").style.display = s.type === "conj" ? "" : "none";
+    $("optPres").style.display = isEndAct(s.type) ? "" : "none";
     $("optDm").style.display = s.type === "dm" ? "" : "none";
     $("optMul").style.display = s.type === "mul" ? "" : "none";
 
@@ -1209,6 +1331,16 @@ td.koc { color: var(--ko); font-weight: 800; }
       (v) => s.mulTables.includes(v), (v) => toggleIn(s.mulTables, v), "mul");
     makeChips($("chipsConj"), VERBS.map((v, i) => ({ value: i, label: v.inf })),
       (v) => s.conjVerbs.includes(v), (v) => toggleIn(s.conjVerbs, v));
+    if (isEndAct(s.type)) {
+      const fams = famsOf(s.type), sel = famSel(s);
+      makeChips($("chipsPres"), fams.map((g, i) => ({ value: i, label: g.label })),
+        (v) => sel.includes(v), (v) => toggleIn(sel, v));
+      $("presInfo").innerHTML = sel.map((i) => {   // les plus courants d'abord
+        const vs = fams[i].verbs.slice().sort((a, b) => (b.w || 1) - (a.w || 1));
+        return "<b>" + fams[i].label + "</b> (" + famEndings(fams[i]) + ") : " + vs.length + " verbe" + (vs.length > 1 ? "s" : "") +
+          (vs.length > 6 ? ", surtout les plus courants : " + vs.slice(0, 6).map((v) => v.inf).join(", ") + "…" : " : " + vs.map((v) => v.inf).join(", "));
+      }).join("<br>") + (sel.length ? "<br>À chaque question, un verbe de la famille est tiré au hasard." : "");
+    }
     makeChips($("chipsDmKind"), [{ value: "double", label: "Doubles" }, { value: "half", label: "Moitiés" }],
       (v) => s.dmKinds[v], (v) => { s.dmKinds[v] = !s.dmKinds[v]; }, "dm");
     makeChips($("chipsDmParts"), [1, 2, 3].map((n) => ({ value: n, label: "Partie " + n })),
@@ -1232,24 +1364,31 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("timeTitle").textContent = "2. Temps par " + n1;
     makeChips($("chipsTime"), TIME_CHOICES.map((n) => ({ value: n, label: n + " s" })),
       (v) => timeOf(s) === v, (v) => { s.times[s.type] = v; });
-    $("rulesInput").innerHTML = s.type === "conj"
+    $("rulesInput").innerHTML = isVerbAct(s.type)
       ? "Le début du verbe est écrit : tape la <b>fin du verbe</b> avec les lettres, puis touche <b>✓ Valider</b>."
       : "Pas besoin de valider : dès que tu as tapé tous les chiffres de ta réponse, elle est prise en compte.";
 
     const anyTable = pool.length > 0;
     $("btnGo").disabled = !anyTable;
     $("warn").textContent = anyTable ? "" : s.type === "dm" ? "Choisis doubles et/ou moitiés, et au moins une partie."
-      : s.type === "conj" ? "Choisis au moins un verbe." : "Choisis au moins une table.";
+      : s.type === "conj" ? "Choisis au moins un verbe." : isEndAct(s.type) ? "Choisis au moins une famille de verbes." : "Choisis au moins une table.";
     saveDb();
   }
 
   // Boutons « Toutes / Aucune » : champ des réglages et liste complète, par activité.
-  const SEL_FIELD = { add: ["addTables", () => range(0, 10)], mul: ["mulTables", () => MUL_RANGE.slice()], conj: ["conjVerbs", () => VERB_RANGE.slice()] };
+  const SEL_FIELD = { add: ["addTables", () => range(0, 10)], mul: ["mulTables", () => MUL_RANGE.slice()], conj: ["conjVerbs", () => VERB_RANGE.slice()]
+  };
   document.querySelectorAll("[data-all]").forEach((b) => b.addEventListener("click", () => {
-    const f = SEL_FIELD[b.dataset.all]; S()[f[0]] = f[1](); renderSetup();
+    const s = S();
+    if (b.dataset.all === "fam") s.families[TYPE_INFO[s.type].tense] = range(0, famsOf(s.type).length - 1);
+    else { const f = SEL_FIELD[b.dataset.all]; s[f[0]] = f[1](); }
+    renderSetup();
   }));
   document.querySelectorAll("[data-none]").forEach((b) => b.addEventListener("click", () => {
-    S()[SEL_FIELD[b.dataset.none][0]] = []; renderSetup();
+    const s = S();
+    if (b.dataset.none === "fam") s.families[TYPE_INFO[s.type].tense] = [];
+    else s[SEL_FIELD[b.dataset.none][0]] = [];
+    renderSetup();
   }));
   $("dmAll").addEventListener("click", () => { S().dmParts = [1, 2, 3]; renderSetup(); });
 
@@ -1259,6 +1398,11 @@ td.koc { color: var(--ko); font-weight: 800; }
   function finalize(f) {
     const q = Object.assign({}, f);
     if (q.type === "conj") {
+      if (isFamily(q) && !q.inf) {   // un verbe de la famille, au hasard (« Revoir mes erreurs » garde le même)
+        const v = pickWeighted(famOf(q).verbs);
+        const parts = v.forms[q.person].split("|");
+        q.inf = v.inf; q.stem = parts[0]; q.answer = parts[1];
+      }
       // Pronom tiré au hasard pour il/elle/on et ils/elles ; la statistique reste rangée sous la personne.
       const list = PRONOUNS[q.person];
       q.pron = pronFor(q.person, conjForm(q), list[Math.floor(Math.random() * list.length)]);
@@ -1479,7 +1623,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("gCombo").style.visibility = "hidden";
     $("mic").classList.toggle("show", game.voice);
     $("cdHint").textContent = game.voice ? "🎤 Réponds par une petite phrase : « ça fait seize »"
-      : game.type === "conj" ? "Tape la fin du verbe, puis ✓ Valider" : "";
+      : isVerbAct(game.type) ? "Tape la fin du verbe, puis ✓ Valider" : "";
     if (game.voice) { setHeard(VOICE_PROMPT); voiceStart(); }
     show("scrCount");
     let n = 3;
@@ -1502,7 +1646,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     $("gProg").textContent = (game.idx + 1) + " / " + game.seq.length;
     $("gBar").style.width = (game.idx / game.seq.length * 100) + "%";
     const txt = q.type === "conj";
-    $("qType").textContent = txt ? "Conjugue au présent le verbe" : Q_LABEL[q.type];
+    $("qType").textContent = txt ? "Conjugue " + TENSES[q.tense].phrase + " le verbe" : Q_LABEL[q.type];
     $("qVerb").textContent = txt ? q.inf : "";
     $("qVerb").classList.toggle("show", txt);
     $("qType").style.color = Q_COLOR[q.type];
@@ -1758,13 +1902,13 @@ td.koc { color: var(--ko); font-weight: 800; }
     const nAcq = after.filter(isAcq).length;
     const won = facts.filter((f, i) => isAcq(after[i]) && !isAcq(before[i]));
     const lost = facts.filter((f, i) => !isAcq(after[i]) && isAcq(before[i]));
-    let html = '<div class="lvhead" style="margin-top:4px"><span>' + nAcq + " / " + facts.length + " " + noun(type, 2) +
-      ' acquis</span><span class="subtle">' + Math.round(nAcq / (facts.length || 1) * 100) + " % de ta sélection</span></div>" +
+    let html = '<div class="lvhead" style="margin-top:4px"><span>' + nAcq + " / " + facts.length + " " + acqTxt(type, 2) +
+      '</span><span class="subtle">' + Math.round(nAcq / (facts.length || 1) * 100) + " % de ta sélection</span></div>" +
       lvBar(after, "big", before);
     html += '<div class="lvgain">' +
       (won.length ? "🎉 <b>+" + won.length + " acquis</b> : " + won.map((f) => escapeHtml(shortLabel(f))).join(", ") + "<br>"
         : nAcq === facts.length ? "Tout est acquis dans ta sélection, bravo ! 🎉<br>"
-        : "Pas de nouveau " + noun(type, 1) + " acquis cette fois. Il faut en général 2 bonnes réponses rapides de suite.<br>") +
+        : (unitOf(type).fem ? "Pas de nouvelle " : "Pas de nouveau ") + acqTxt(type, 1) + " cette fois. Il faut en général 2 bonnes réponses rapides de suite.<br>") +
       (lost.length ? "À consolider : " + lost.map((f) => escapeHtml(shortLabel(f))).join(", ") : "") + "</div>";
     const groups = groupsOf(type).filter((gr) => facts.some((f) => f.group === gr.id));
     if (groups.length > 1) {
@@ -1803,8 +1947,7 @@ td.koc { color: var(--ko); font-weight: 800; }
 
   function renderProgress() {
     const k = kid();
-    const nn = noun(progType, 2);
-    $("hmTitle").textContent = "Carte des " + nn;
+    $("hmTitle").textContent = "Carte des " + unitOf(progType).p;
     $("hmDetail").innerHTML = "Une case est <b>acquise</b> quand la réponse est juste et rapide (moins de 4 s) plusieurs fois de suite. Les essais récents comptent plus que les anciens.";
 
     const cat = catalog(progType);
@@ -1814,8 +1957,8 @@ td.koc { color: var(--ko); font-weight: 800; }
     const fragile = st.filter((x) => x.m !== null && x.m < EN_COURS).length;
     const sessions = k.history.filter((h) => h.type === progType).length;
     $("progSummary").innerHTML =
-      sumBox(acquired + "<small>/" + cat.length + "</small>", nn.charAt(0).toUpperCase() + nn.slice(1) + " acquis") +
-      sumBox(seen + "<small>/" + cat.length + "</small>", "Déjà vus") +
+      sumBox(acquired + "<small>/" + cat.length + "</small>", cap(acqTxt(progType, 2))) +
+      sumBox(seen + "<small>/" + cat.length + "</small>", unitOf(progType).fem ? "Déjà vues" : "Déjà vus") +
       sumBox(String(fragile), "À travailler") +
       sumBox(String(sessions), "Séances");
     const allMs = st.map((x) => x.m);
@@ -1851,15 +1994,21 @@ td.koc { color: var(--ko); font-weight: 800; }
         });
       });
       html += "</div>";
-    } else if (progType === "conj") {
-      // Une ligne par verbe, une colonne par personne ; la case montre la forme à connaître.
+    } else if (isVerbAct(progType)) {
+      // conj : une ligne par verbe ; pres : une ligne par famille. Une colonne par personne.
+      // La case montre la forme (sur téléphone : la terminaison), ou la terminaison de la famille.
+      const rows = progType === "conj" ? VERBS.map((v) => v.inf) : famsOf(progType).map((g) => g.short);
       html = '<div class="hm conj" style="grid-template-columns:auto repeat(6,1fr)"><div class="hh"></div>' +
         PERSONS.map((p) => '<div class="hh">' + p + "</div>").join("");
-      VERBS.forEach((v, vi) => {
-        html += '<div class="hh row">' + v.inf + "</div>";
-        cat.filter((f) => f.row === vi).forEach((f) => { html += cellHtml(k, f, escapeHtml(conjForm(f))); });
+      rows.forEach((lab, ri) => {
+        html += '<div class="hh row">' + escapeHtml(lab) + "</div>";
+        cat.filter((f) => f.row === ri).forEach((f) => {
+          html += cellHtml(k, f, isFamily(f) ? "-" + escapeHtml(f.answer)
+            : '<span class="hs">' + escapeHtml(f.stem) + "</span>" + escapeHtml(f.answer));
+        });
       });
       html += "</div>";
+      if (isEndAct(progType)) html += '<div class="hint">Chaque case est une terminaison : par exemple « -t » des verbes en -ir à il, elle, on. Les questions changent de verbe à chaque fois.</div>';
     } else {
       groupsOf("dm").forEach((g) => {
         html += '<div class="hmrow"><div class="hml">' + g.label + '</div><div class="hmcells">' +
@@ -1880,14 +2029,17 @@ td.koc { color: var(--ko); font-weight: 800; }
           (s.avg !== null ? " · temps moyen " + fmtDec(s.avg) + " s" : "") +
           " · dernière fois : " + (s.lastOk ? "juste ✅" : "raté ❌") + (s.lastReview ? " (en révision)" : "") +
           " · maîtrise " + Math.round(s.m * 100) + " %"
-          : progType === "conj" ? "Ce verbe n'a pas encore été proposé à cette personne." : "Ce calcul n'a pas encore été proposé.");
+          : isEndAct(progType) ? "Cette terminaison n'a pas encore été proposée."
+          : isVerbAct(progType) ? "Ce verbe n'a pas encore été proposé à cette personne." : "Ce calcul n'a pas encore été proposé.");
     }));
   }
 
   function renderRanking(k) {
     const gs = groupStats(k, progType).sort((a, b) => b.acquired - a.acquired || b.score - a.score || b.seen - a.seen);
-    $("rankTitle").textContent = progType === "dm" ? "Classement des parties" : progType === "conj" ? "Classement des verbes" : "Classement des tables";
-    $("rankHint").textContent = progType === "conj" ? "Du plus acquis au moins acquis. À droite : personnes acquises (sur 6)."
+    $("rankTitle").textContent = progType === "dm" ? "Classement des parties" : progType === "conj" ? "Classement des verbes"
+      : isEndAct(progType) ? "Classement des familles de verbes" : "Classement des tables";
+    $("rankHint").textContent = isEndAct(progType) ? "De la plus acquise à la moins acquise. À droite : personnes acquises (sur 6)."
+      : progType === "conj" ? "Du plus acquis au moins acquis. À droite : personnes acquises (sur 6)."
       : "De la plus acquise à la moins acquise. À droite : " + noun(progType, 2) + " acquis.";
     $("rankList").innerHTML = gs.map((g, i) =>
       '<div class="rank"><div class="pos">' + (i + 1) + '</div><div class="nm">' + g.label +
@@ -1895,7 +2047,8 @@ td.koc { color: var(--ko); font-weight: 800; }
         lvBar(g.ms) +
         '<div class="pct">' + (g.seen ? g.acquired + "/" + g.total : "—") + "</div></div>").join("");
     $("btnTarget").textContent = progType === "dm" ? "🧠 S'entraîner sur les 3 parties les moins acquises"
-      : progType === "conj" ? "🧠 S'entraîner sur les 3 verbes les moins acquis" : "🧠 S'entraîner sur les 3 tables les moins acquises";
+      : progType === "conj" ? "🧠 S'entraîner sur les 3 verbes les moins acquis"
+      : isEndAct(progType) ? "🧠 S'entraîner sur les 3 familles les moins acquises" : "🧠 S'entraîner sur les 3 tables les moins acquises";
   }
   $("btnTarget").addEventListener("click", () => {
     const k = kid(), s = k.settings;
@@ -1905,6 +2058,7 @@ td.koc { color: var(--ko); font-weight: 800; }
     if (progType === "add") s.addTables = gs.map((g) => g.value).sort((a, b) => a - b);
     else if (progType === "mul") s.mulTables = gs.map((g) => g.value).sort((a, b) => a - b);
     else if (progType === "conj") s.conjVerbs = gs.map((g) => g.value).sort((a, b) => a - b);
+    else if (isEndAct(progType)) s.families[TYPE_INFO[progType].tense] = gs.map((g) => g.value).sort((a, b) => a - b);
     else {
       s.dmKinds = { double: gs.some((g) => g.kind === "double"), half: gs.some((g) => g.kind === "half") };
       s.dmParts = [...new Set(gs.map((g) => g.part))].sort();
@@ -2021,8 +2175,10 @@ td.koc { color: var(--ko); font-weight: 800; }
   // Bonne terminaison d'un verbe affiché (infinitif, pronom, radical) : utile pour les tests automatiques.
   function conjAnswer(inf, pron, stem) {
     const p = ({ "je": 0, "j'": 0, tu: 1, il: 2, elle: 2, on: 2, nous: 3, vous: 4, ils: 5, elles: 5 })[pron];
-    const f = catalog("conj").find((x) => x.inf === inf && x.person === p && x.stem === stem);
-    return f ? f.answer : "";
+    let v = VERBS.find((x) => x.inf === inf);
+    Object.keys(TENSES).forEach((te) => TENSES[te].families.forEach((g) => g.verbs.forEach((x) => { if (x.inf === inf) v = x; })));
+    const fm = v ? v.forms[p].split("|") : null;
+    return fm && fm[0] === stem ? fm[1] : "";
   }
   window.__tablo = { parseFrNumber, parseFrNumbers, voiceHeardExpected, conjAnswer };  // utile pour les tests
 })();

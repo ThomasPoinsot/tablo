@@ -1,6 +1,6 @@
 # Tablo — notes de reprise
 
-Appli web de révision pour enfants (niveau CE1 et plus), en français. Les activités sont classées par catégorie dans un menu : **Maths** (tables d'addition, doubles et moitiés, tables de multiplication) et **Conjugaison** (verbes à connaître au présent). D'autres activités seront ajoutées petit à petit. Les questions arrivent une par une avec un sablier ; chaque séance donne une note sur 20 et des points selon la vitesse de réponse.
+Appli web de révision pour enfants (niveau CE1 et plus), en français. Les activités sont classées par catégorie dans un menu : **Maths** (tables d'addition, doubles et moitiés, tables de multiplication) et **Conjugaison** (verbes à connaître au présent, terminaisons du présent). D'autres activités seront ajoutées petit à petit. Les questions arrivent une par une avec un sablier ; chaque séance donne une note sur 20 et des points selon la vitesse de réponse.
 
 - En ligne : <https://thomaspoinsot.github.io/tablo/> (GitHub Pages, dépôt public `ThomasPoinsot/tablo`)
 - Le dossier local s'appelle encore `basimaths/` : c'était l'ancien nom de l'appli. C'est normal.
@@ -35,7 +35,8 @@ Outils → Données de référence → Sauvegarde → Écran enfants → Navigat
 - `scrResult` : note, points, étoiles, carte « Ta progression », détail de chaque calcul.
 
 Autres éléments :
-- La barre `#kidbar` contient l'avatar, le prénom, le bouton 🎨 et les onglets. Elle est visible sur les écrans Menu (sans les onglets, classe `inmenu`), Setup, Progress et Result.
+- En-tête : « Tablo » à gauche ; à droite le bouton prénom + avatar (`#kidgrp`, `kbSwitch`), 🎨 (`kbTheme`) et ⋮. `#kidgrp` est visible sur Menu, Setup, Progress et Result (classe `header.withkid`, qui masque le slogan).
+- La barre `#kidbar` ne contient plus que les onglets S'entraîner / Progression, sur toute la largeur. Elle est visible sur Setup, Progress et Result (pas sur le menu).
 - Le bandeau `#actbar` (« ← Menu » + catégorie › activité) est visible sur Setup, Progress et Result : c'est le retour au menu.
 - Le header contient le menu `⋮` (export / import, test du micro). Il est masqué pendant le jeu via `body.playing`.
 - `show()` applique aussi le thème de l'enfant courant et la classe `body.playing`.
@@ -50,7 +51,8 @@ Kid = {
   id, name (≤ 20 car.), avatar (emoji de AVATARS), created,
   settings: { type: "add"|"mul"|"dm"|"conj", addTables: [0..10], mulTables: [2..10], conjVerbs: [index dans VERBS],
               dmKinds: {double, half}, dmParts: [1..3], count (toujours 20, SESSION_COUNT),
-              times: { add, dm, mul, conj } (5|8|10|15|20 s, TIME_CHOICES ; un temps par activité, conj 15 s par défaut),
+              times: { add, dm, mul, conj, pres… } (5|8|10|15|20 s, TIME_CHOICES ; un temps par activité, 15 s par défaut pour les verbes),
+              families: { present: [index dans PRES_GROUPS] },
               mode: toujours "smart", voice: toujours false, theme: "lagon"|"bonbon"|"arcade" },
   history: [{ d (timestamp), type, mode: "random"|"smart", n, time, good, note, pts }],  // plus récent en premier, max 200
   records: { "type|mode|n|time": points },
@@ -64,7 +66,8 @@ Kid = {
   - additions : `add:T:B`, avec T = la table (0..10) et B entre 0 et 10 ;
   - multiplications : `mul:T:B`, avec T et B entre 2 et 10 (constante `MUL_RANGE`) ;
   - doubles et moitiés : `double:N` et `half:N` ;
-  - verbes : `conj:INFINITIF:P`, avec P la personne de 0 (je) à 5 (ils/elles).
+  - verbes : `conj:INFINITIF:P`, avec P la personne de 0 (je) à 5 (ils/elles) ;
+  - terminaisons : `term:TEMPS:FAMILLE:P` (ex. `term:present:1:2` = verbes en -ir/-oir/-re à il, elle, on).
 - L'ancien réglage unique `time` est converti en `times` par `normalizeKid()` (puis supprimé).
 - Pour l'addition et la multiplication, l'affichage inverse les termes une fois sur deux (`finalize`). La stat reste rangée sous la table choisie.
 - Export : fichier JSON `{ app: "Tablo", version: 1, exported, kids, currentId }`. Import : `parseDb()` valide le fichier, puis il remplace tout après confirmation.
@@ -92,6 +95,15 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - Le temps est compté au premier caractère tapé (comme pour les nombres).
 - Progression : carte verbes × personnes (la case montre la forme), classement par verbe, « S'entraîner sur les 3 verbes les moins acquis ».
 - Textes : `noun(type, n)` donne « calcul(s) » ou « verbe(s) » (masculin pour éviter les accords).
+
+## Conjugaison : terminaisons du présent (activité `pres`)
+
+- Fiche Sejer « Le présent » : 4 colonnes = 4 familles (`PRES_GROUPS`) : -er (e, es, e, ons, ez, ent), -ir/-oir/-re (s, s, t…), pouvoir/vouloir (x, x, t…), -dre (ds, ds, d…).
+- **Ce qui est évalué, c'est la terminaison d'une famille à une personne**, pas un verbe (demande de l'utilisateur : « acquis » = par ex. les verbes en -ir à la 3e personne). Fait `term:TEMPS:FAMILLE:PERSONNE` (24 au présent), carte familles × personnes, classement des familles.
+- À chaque question, `finalize` tire un verbe de la famille, **pondéré par sa fréquence d'usage** (`w` de 1 à 5, `pickWeighted`, demande de l'utilisateur). « Revoir mes erreurs » garde le même verbe.
+- Listes : 39 verbes en -er, 30 en -ir/-oir/-re, pouvoir et vouloir, 15 en -dre, écrits avec les fabriques `er`, `sst`, `ir2`, `dre` et `prendLike`. **Un verbe n'entre dans une famille que si ses 6 terminaisons sont exactement celles de la colonne.** Exclus : mettre (« il met »), ouvrir (« j'ouvre »), faire/dire (« vous faites »), peindre (« il peint »), aller. Le radical peut changer (je viens / nous venons) : il est affiché. Après toute modification, vérifier les terminaisons (script node sur `PRES_GROUPS`, comparaison au premier verbe).
+- **Autres temps prévus** : `TENSES` (temps → familles, `phrase` pour la consigne « Conjugue au présent le verbe »). Pour ajouter l'imparfait, par exemple : une entrée dans `TENSES`, une activité dans `TYPE_INFO` (`endings: true, tense: "imparfait"`) et dans `CATEGORIES`. Les réglages (`settings.families[temps]`), les clés de stats, la carte et le classement suivent.
+- `unitOf(type)` / `acqTxt` : l'unité de la progression (« terminaisons acquises », au féminin) ; `noun` reste « verbe » pour les questions.
 
 ## Algorithmes
 
@@ -155,7 +167,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v20`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v21`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
@@ -167,7 +179,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 2. les tests de `parseFrNumber` ;
 3. des captures d'écran avec Chrome en mode automatique, à 375×667, 820×1180 et 1366×768, sur les écrans kids, setup, progression et jeu, avec des données de test générées par `dev/make_test_pages.py`.
 
-Les captures couvrent aussi le menu (`menu`) et la conjugaison (`csetup`, `cprog`, `cgame`). `make_test_pages.py` produit aussi `v_result.html` et `v_cresult.html` (séance de verbes complète, via `window.__tablo.conjAnswer`) (séance complète jouée au clavier, 3e réponse fausse), non capturé par `check.sh` : le lancer à la main avec `--virtual-time-budget=40000` et une fenêtre haute (ex. 375×1500).
+Les captures couvrent aussi le menu (`menu`), la conjugaison (`csetup`, `cprog`, `cgame`) et les terminaisons (`psetup`, `pprog`, `pgame`). `v_presult.html` joue une séance de terminaisons complète. `make_test_pages.py` produit aussi `v_result.html` et `v_cresult.html` (séance de verbes complète, via `window.__tablo.conjAnswer`) (séance complète jouée au clavier, 3e réponse fausse), non capturé par `check.sh` : le lancer à la main avec `--virtual-time-budget=40000` et une fenêtre haute (ex. 375×1500).
 
 Il faut ensuite regarder les PNG produits. Points à connaître :
 - Les captures prises juste après une navigation peuvent paraître pâles : c'est l'animation `fade` des écrans, pas un bug.
@@ -175,6 +187,11 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 - Pour tester le service worker ou le manifeste, il faut servir en http (`python3 -m http.server`), pas en `file://`.
 
 ## Évolutions récentes (toutes en ligne)
+
+2026-11-24 (3) :
+- Activité « Terminaisons du présent » (voir sa section).
+- En-tête réorganisé : prénom + 🎨 sur la ligne de « Tablo », onglets sur toute la largeur en dessous.
+- Jeu en pleine hauteur, clavier en bas, touches les plus grandes possible (voir Pièges).
 
 2026-11-24 (2) — menu des activités et conjugaison :
 - Après le choix de l'enfant : menu des activités par catégorie (Maths, Conjugaison). Bandeau « ← Menu » dans les activités. Le choix du type a quitté l'écran de réglages, et les onglets de type ont quitté l'écran de progression.

@@ -28,6 +28,9 @@ for n in (2, 4, 6, 8, 10, 12):
 for v, lv in (("avoir", (1, 2)), ("être", (1, 2.5)), ("aller", (1, 5)), ("faire", (0, 8)), ("vouloir", (1, 3))):
     for p in range(6):
         facts[f"conj:{v}:{p}"] = [list(lv), [1 if p % 3 else 0, lv[1]]]
+for g, lv in ((0, (1, 2)), (1, (1, 6)), (3, (0, 9))):
+    for p in range(6):
+        facts[f"term:present:{g}:{p}"] = [list(lv), [1 if p != 2 else 0, lv[1]]]
 hist = [{"d": 1763800000000 - i * 86400000, "type": "mul", "mode": "smart" if i % 2 else "random",
          "n": 10, "time": 10, "good": g, "note": g * 2, "pts": g * 70}
         for i, g in enumerate([9, 8, 8, 7, 7, 6, 8, 5, 6, 4, 5, 3])]
@@ -51,8 +54,19 @@ nav = {
     "cprog": ACT("conj") + 'document.querySelector("[data-tab=scrProgress]").click();',
     "cgame": ACT("conj") + 'document.getElementById("btnGo").click();'
             'setTimeout(()=>{["o","n"].forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k})))},2400);',
+    "psetup": ACT("pres"),
+    "pprog": ACT("pres") + 'document.querySelector("[data-tab=scrProgress]").click();',
+    "pgame": ACT("pres") + 'document.getElementById("btnGo").click();',
     # Séance de verbes complète : bonne terminaison (lue dans le catalogue via le texte), 3e fausse, puis écran de fin.
     "cresult": ACT("conj") + 'document.getElementById("btnGo").click();'
+               'let last="",n=0;setInterval(()=>{const g=document.getElementById("qGap");'
+               'if(!document.querySelector("#scrGame.active")||!g||g===last)return;last=g;n++;'
+               'const ty=document.getElementById("qVerb").textContent;'
+               'const stem=document.querySelector("#qText .stem").textContent;'
+               'const pr=document.getElementById("qText").firstChild.textContent.trim();'
+               'const v=window.__tablo.conjAnswer(ty,pr,stem);const a=n===3?"zz":v;'
+               '(a+"\\n").split("").forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k==="\\n"?"Enter":k})))},300);',
+    "presult": ACT("pres") + 'document.getElementById("btnGo").click();'
                'let last="",n=0;setInterval(()=>{const g=document.getElementById("qGap");'
                'if(!document.querySelector("#scrGame.active")||!g||g===last)return;last=g;n++;'
                'const ty=document.getElementById("qVerb").textContent;'
