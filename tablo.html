@@ -44,6 +44,7 @@
   --bg: #fff4ec; --card: #ffffff; --ink: #2b2350; --muted: #857ba5; --line: #f0e3ef; --chip: #f6eefa; --none: #f1e9f3;
   --keybg: #ffffff; --accent: #7b5cff; --accent-ink: #ffffff; --add: #19c39a; --dm: #ff8a3d; --mul: #ff4d8d;
   --ok: #19c39a; --ok-ink: #ffffff; --ko: #ff4d6d; --sand: #ffc93c; --star: #ffc93c; --glass: #a89cc8;
+  --sel: #7b5cff; --sel-ink: #ffffff; --off: #f1eff4; --off-ink: #b3abc0;
   --shadow: 0 2px 0 rgba(123,92,255,.06), 0 8px 24px rgba(123,92,255,.10);
   color-scheme: light;
 }
@@ -51,6 +52,7 @@
   --bg: #e8f6fb; --card: #ffffff; --ink: #0f2a3d; --muted: #648193; --line: #d3e9f2; --chip: #e6f2f7; --none: #e1edf2;
   --keybg: #ffffff; --accent: #0ea5e9; --accent-ink: #ffffff; --add: #10b981; --dm: #f59e0b; --mul: #6366f1;
   --ok: #10b981; --ok-ink: #ffffff; --ko: #ef4444; --sand: #fbbf24; --star: #fbbf24; --glass: #8aa6b6;
+  --sel: #0284c7; --sel-ink: #ffffff; --off: #eef1f4; --off-ink: #a4afb8;
   --shadow: 0 2px 0 rgba(14,165,233,.06), 0 8px 24px rgba(14,165,233,.10);
   color-scheme: light;
 }
@@ -58,6 +60,7 @@
   --bg: #15112e; --card: #221c48; --ink: #f4f1ff; --muted: #a89fd6; --line: #362d6b; --chip: #2e2760; --none: #2b2556;
   --keybg: #2a2358; --accent: #ffd23f; --accent-ink: #1b1640; --add: #2ee59d; --dm: #ff9f1c; --mul: #b388ff;
   --ok: #2ee59d; --ok-ink: #10331f; --ko: #ff5470; --sand: #ffd23f; --star: #ffd23f; --glass: #7d74b8;
+  --sel: #ffd23f; --sel-ink: #1b1640; --off: #29234f; --off-ink: #6c6597;
   --shadow: 0 2px 0 rgba(0,0,0,.25), 0 8px 24px rgba(0,0,0,.35);
   color-scheme: dark;
 }
@@ -151,18 +154,18 @@ dialog label { font-weight: 700; font-size: 14px; display: block; margin-bottom:
 /* ---- Réglages ---- */
 .types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .type {
-  border: 3px solid var(--line); background: var(--card); border-radius: 16px; padding: 14px 10px;
-  text-align: center; transition: border-color .15s, transform .1s;
+  border: 3px solid transparent; background: var(--off); color: var(--off-ink); border-radius: 16px; padding: 14px 10px;
+  text-align: center; transition: border-color .15s, background-color .15s, transform .1s;
 }
+.type:not(.on) .sym { filter: grayscale(1); opacity: .45; }
 .type:active { transform: scale(.98); }
 .type .sym { font-size: 34px; font-weight: 800; line-height: 1; display: block; margin-bottom: 6px; }
 .type .lbl { font-weight: 700; font-size: 15px; }
 .type[data-type="add"] .sym { color: var(--add); }
 .type[data-type="dm"] .sym { color: var(--dm); }
 .type[data-type="mul"] .sym { color: var(--mul); }
-.type[data-type="add"].on { border-color: var(--add); background: color-mix(in srgb, var(--add) 10%, var(--card)); }
-.type[data-type="dm"].on { border-color: var(--dm); background: color-mix(in srgb, var(--dm) 10%, var(--card)); }
-.type[data-type="mul"].on { border-color: var(--mul); background: color-mix(in srgb, var(--mul) 10%, var(--card)); }
+/* Sélection : même couleur partout dans un thème (--sel) ; non sélectionné : gris pâle (--off) */
+.type.on { border-color: var(--sel); background: var(--card); background: color-mix(in srgb, var(--sel) 12%, var(--card)); color: var(--ink); }
 
 .opts { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 12px; }
 .opts h3 { font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -170,12 +173,10 @@ dialog label { font-weight: 700; font-size: 14px; display: block; margin-bottom:
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   min-width: 46px; padding: 9px 12px; border-radius: 12px; border: 2px solid transparent;
-  background: var(--chip); font-weight: 700; font-size: 16px;
+  background: var(--off); color: var(--off-ink); font-weight: 700; font-size: 16px;
+  transition: background-color .15s, color .15s;
 }
-.chip.on { background: var(--accent); color: var(--accent-ink); }
-.chip.add.on { background: var(--add); }
-.chip.dm.on { background: var(--dm); }
-.chip.mul.on { background: var(--mul); }
+.chip.on { background: var(--sel); color: var(--sel-ink); box-shadow: 0 2px 6px rgba(0,0,0,.18); }
 .chip:disabled { opacity: .45; cursor: not-allowed; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .hint { font-size: 13px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
