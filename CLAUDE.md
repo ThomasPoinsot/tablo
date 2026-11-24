@@ -1,6 +1,6 @@
 # Tablo — notes de reprise
 
-Appli web de révision du calcul mental pour enfants (niveau CE1 et plus), en français. Elle couvre les tables d'addition, les doubles et moitiés, et les tables de multiplication. Les calculs arrivent un par un avec un sablier ; chaque séance donne une note sur 20 et des points selon la vitesse de réponse.
+Appli web de révision pour enfants (niveau CE1 et plus), en français. Les activités sont classées par catégorie dans un menu : **Maths** (tables d'addition, doubles et moitiés, tables de multiplication) et **Conjugaison** (verbes à connaître au présent). D'autres activités seront ajoutées petit à petit. Les questions arrivent une par une avec un sablier ; chaque séance donne une note sur 20 et des points selon la vitesse de réponse.
 
 - En ligne : <https://thomaspoinsot.github.io/tablo/> (GitHub Pages, dépôt public `ThomasPoinsot/tablo`)
 - Le dossier local s'appelle encore `basimaths/` : c'était l'ancien nom de l'appli. C'est normal.
@@ -22,19 +22,21 @@ Appli web de révision du calcul mental pour enfants (niveau CE1 et plus), en fr
 ## Architecture de `tablo.html`
 
 Tout le JS est dans une IIFE `(() => { "use strict"; ... })()`. Il n'y a ni framework, ni build, ni dépendance externe. Les sections du code sont repérées par des bannières `// ====`, dans cet ordre :
-Outils → Données de référence → Sauvegarde → Écran enfants → Navigation → Catalogue des calculs → Maîtrise → Écran réglages → Choix des calculs → Reconnaissance vocale → Partie → Fin de partie → Écran progression → Installation → Démarrage.
+Outils → Données de référence → Sauvegarde → Écran enfants → Navigation → Catalogue des calculs → Maîtrise → Menu des activités → Écran réglages → Choix des calculs → Reconnaissance vocale → Partie → Fin de partie → Écran progression → Installation → Démarrage.
 
 Écrans : des `<section class="screen">`, un seul actif à la fois, géré par `show(id)`.
 
-- `scrKids` : choix de l'enfant, ajout et édition dans `<dialog id="dlgKid">`.
-- `scrSetup` : réglages de la séance.
-- `scrProgress` : barre « Progression générale », carte de chaleur, classement des tables, évolution des notes, historique.
+- `scrKids` : choix de l'enfant, ajout et édition dans `<dialog id="dlgKid">`. Choisir un enfant mène au menu.
+- `scrMenu` : menu des activités (`renderMenu`), une section par catégorie (`CATEGORIES`), une carte par activité avec sa barre de niveaux et « x / n acquis ». Toucher une carte fixe `settings.type` et ouvre les réglages.
+- `scrSetup` : réglages de la séance de l'activité courante (plus de choix du type ici).
+- `scrProgress` : progression de l'activité courante (plus d'onglets par type) : barre « Progression générale », carte de chaleur, classement, évolution des notes, historique.
 - `scrCount` : compte à rebours 3-2-1.
 - `scrGame` : le calcul, le sablier en SVG animé par `requestAnimationFrame`, le pavé numérique.
 - `scrResult` : note, points, étoiles, carte « Ta progression », détail de chaque calcul.
 
 Autres éléments :
-- La barre `#kidbar` contient l'avatar, le prénom, le bouton 🎨 et les onglets. Elle est visible sur les écrans Setup, Progress et Result.
+- La barre `#kidbar` contient l'avatar, le prénom, le bouton 🎨 et les onglets. Elle est visible sur les écrans Menu (sans les onglets, classe `inmenu`), Setup, Progress et Result.
+- Le bandeau `#actbar` (« ← Menu » + catégorie › activité) est visible sur Setup, Progress et Result : c'est le retour au menu.
 - Le header contient le menu `⋮` (export / import, test du micro). Il est masqué pendant le jeu via `body.playing`.
 - `show()` applique aussi le thème de l'enfant courant et la classe `body.playing`.
 
@@ -46,8 +48,9 @@ Clé `tablo.v1`. L'ancienne clé `basimaths.v2` est relue automatiquement si la 
 db = { kids: [Kid], currentId: "id" }
 Kid = {
   id, name (≤ 20 car.), avatar (emoji de AVATARS), created,
-  settings: { type: "add"|"mul"|"dm", addTables: [0..10], mulTables: [2..10],
-              dmKinds: {double, half}, dmParts: [1..3], count (toujours 20, SESSION_COUNT), time (5|8|10|15|20 s, TIME_CHOICES),
+  settings: { type: "add"|"mul"|"dm"|"conj", addTables: [0..10], mulTables: [2..10], conjVerbs: [index dans VERBS],
+              dmKinds: {double, half}, dmParts: [1..3], count (toujours 20, SESSION_COUNT),
+              times: { add, dm, mul, conj } (5|8|10|15|20 s, TIME_CHOICES ; un temps par activité, conj 15 s par défaut),
               mode: toujours "smart", voice: toujours false, theme: "lagon"|"bonbon"|"arcade" },
   history: [{ d (timestamp), type, mode: "random"|"smart", n, time, good, note, pts }],  // plus récent en premier, max 200
   records: { "type|mode|n|time": points },
@@ -60,7 +63,9 @@ Kid = {
 - Clés des faits :
   - additions : `add:T:B`, avec T = la table (0..10) et B entre 0 et 10 ;
   - multiplications : `mul:T:B`, avec T et B entre 2 et 10 (constante `MUL_RANGE`) ;
-  - doubles et moitiés : `double:N` et `half:N`.
+  - doubles et moitiés : `double:N` et `half:N` ;
+  - verbes : `conj:INFINITIF:P`, avec P la personne de 0 (je) à 5 (ils/elles).
+- L'ancien réglage unique `time` est converti en `times` par `normalizeKid()` (puis supprimé).
 - Pour l'addition et la multiplication, l'affichage inverse les termes une fois sur deux (`finalize`). La stat reste rangée sous la table choisie.
 - Export : fichier JSON `{ app: "Tablo", version: 1, exported, kids, currentId }`. Import : `parseDb()` valide le fichier, puis il remplace tout après confirmation.
 
@@ -77,6 +82,16 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
   - partie 1 : 2 à 16 (nombres pairs), puis 20 à 30 ;
   - partie 2 : 40 à 100, de 10 en 10 ;
   - partie 3 : 200, 300, 400, 500, 600, 1000.
+
+## Conjugaison : verbes à connaître au présent
+
+- `VERBS` suit **à la lettre** la fiche Sejer « Des verbes à bien connaître au présent » fournie par l'utilisateur : avoir, être, aller, faire, dire, voir, vouloir, pouvoir, prendre. Chaque forme est écrite `"radical|terminaison"` (ex. `"voul|ons"`, `"v|ont"`). Pour avoir et être, le radical est vide : l'enfant tape la forme entière.
+- La question affiche le pronom et le radical (« nous voul… »), l'enfant tape la terminaison. Pour il/elle/on et ils/elles, le pronom est tiré au hasard (`finalize`) ; la stat reste rangée sous la personne. « je » devient « j' » devant une voyelle (`pronFor`).
+- Clavier de lettres AZERTY à l'écran (`#lpad`, avec ê pour « êtes ») et **validation par ✓** ou Entrée : pas de validation automatique, la longueur de la terminaison serait un indice. Le clavier physique marche aussi (lettres accentuées comprises).
+- Juste si la saisie est la terminaison, ou le verbe entier (radical + terminaison). Accents exigés (« etes » est faux).
+- Le temps est compté au premier caractère tapé (comme pour les nombres).
+- Progression : carte verbes × personnes (la case montre la forme), classement par verbe, « S'entraîner sur les 3 verbes les moins acquis ».
+- Textes : `noun(type, n)` donne « calcul(s) » ou « verbe(s) » (masculin pour éviter les accords).
 
 ## Algorithmes
 
@@ -125,6 +140,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 - Chaque thème définit les variables : `--bg --card --ink --muted --line --chip --none --keybg --accent --accent-ink --add --dm --mul --ok --ok-ink --ko --sand --star --glass --sel --sel-ink --off --off-ink --shadow`.
 - **Sélection uniforme** (2026-11-24, demande de l'utilisateur) : toute case choisie (`.chip.on`, `.type.on`) prend la même couleur `--sel` / `--sel-ink`, quel que soit le type de calcul. Une case non choisie est entièrement gris pâle (`--off` / `--off-ink`, symbole des grandes cases en niveaux de gris). Ne plus colorer les sélections avec `--add`, `--dm` ou `--mul`.
 - Le choix est enregistré par enfant (`settings.theme`). On le change avec le bouton 🎨 de la kidbar (il fait défiler les thèmes) ou dans la fiche de l'enfant. `applyTheme()` met aussi à jour `<meta name="theme-color">`.
+- Une couleur par activité : `--add --dm --mul --conj`.
 - Pour ajouter un thème : un bloc CSS, une entrée dans `THEMES` (couleurs des vignettes) et une entrée dans `THEME_ORDER`.
 
 ## Installation sur l'écran d'accueil / PWA
@@ -139,7 +155,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 ## Déploiement
 
 - Pour mettre à jour : **commit, puis `git push`** (remote SSH `git@github.com:ThomasPoinsot/tablo.git`, branche `main`). GitHub Pages se redéploie tout seul en 30 à 60 s.
-- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v18`).
+- **À chaque modification des fichiers servis, incrémenter `CACHE` dans `sw.js`** (actuellement `tablo-v19`).
 - Le jeton `gh` de l'utilisateur ne peut ni créer de dépôt ni configurer Pages. **Ne jamais proposer `gh auth login`** : ça casserait ses accès à d'autres projets. Ce n'est de toute façon plus nécessaire, Pages est déjà activé.
 - Vérifier la mise en ligne : `curl -s https://thomaspoinsot.github.io/tablo/tablo.html | grep -q "<texte ajouté>"`, à relancer toutes les 10 s jusqu'à ce que le texte apparaisse.
 - Les commits se terminent par `Co-Authored-By: Claude …`.
@@ -151,7 +167,7 @@ Doubles et moitiés : la constante `DM_SHEET` suit **exactement** les fiches « 
 2. les tests de `parseFrNumber` ;
 3. des captures d'écran avec Chrome en mode automatique, à 375×667, 820×1180 et 1366×768, sur les écrans kids, setup, progression et jeu, avec des données de test générées par `dev/make_test_pages.py`.
 
-`make_test_pages.py` produit aussi `v_result.html` (séance complète jouée au clavier, 3e réponse fausse), non capturé par `check.sh` : le lancer à la main avec `--virtual-time-budget=40000` et une fenêtre haute (ex. 375×1500).
+Les captures couvrent aussi le menu (`menu`) et la conjugaison (`csetup`, `cprog`, `cgame`). `make_test_pages.py` produit aussi `v_result.html` et `v_cresult.html` (séance de verbes complète, via `window.__tablo.conjAnswer`) (séance complète jouée au clavier, 3e réponse fausse), non capturé par `check.sh` : le lancer à la main avec `--virtual-time-budget=40000` et une fenêtre haute (ex. 375×1500).
 
 Il faut ensuite regarder les PNG produits. Points à connaître :
 - Les captures prises juste après une navigation peuvent paraître pâles : c'est l'animation `fade` des écrans, pas un bug.
@@ -159,6 +175,12 @@ Il faut ensuite regarder les PNG produits. Points à connaître :
 - Pour tester le service worker ou le manifeste, il faut servir en http (`python3 -m http.server`), pas en `file://`.
 
 ## Évolutions récentes (toutes en ligne)
+
+2026-11-24 (2) — menu des activités et conjugaison :
+- Après le choix de l'enfant : menu des activités par catégorie (Maths, Conjugaison). Bandeau « ← Menu » dans les activités. Le choix du type a quitté l'écran de réglages, et les onglets de type ont quitté l'écran de progression.
+- Nouvelle activité « Verbes à connaître au présent » (voir la section Conjugaison).
+- Temps par question réglé séparément pour chaque activité (`settings.times`).
+- Pour ajouter une activité : une entrée dans `TYPE_INFO` et dans `CATEGORIES`, une variable de couleur par thème, et les branches de `catalog`, `groupsOf`, `buildPool`, `finalize`, `factLabel`/`shortLabel`, `renderSetup` (options), `renderHeatmap`, `btnTarget`, `normalizeKid`.
 
 2026-11-24 — écran de réglages simplifié, à la demande de l'utilisateur :
 - Plus de choix « Comment choisir les calculs » : toujours le mode intelligent. Le texte d'explication et les calculs prioritaires (`modeInfo`) sont affichés sous le choix des tables.

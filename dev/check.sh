@@ -33,7 +33,7 @@ node "$OUT/parser_test.js"
 echo "== Captures"
 python3 "$ROOT/dev/make_test_pages.py" "$OUT" >/dev/null
 CHROME="$(command -v google-chrome || command -v chromium)"
-for v in kids setup prog game; do
+for v in kids menu setup prog game csetup cprog cgame; do
   for w in 375x667 820x1180 1366x768; do
     rm -rf "$OUT/prof_$v$w"
     "$CHROME" --headless=new --disable-gpu --no-sandbox --user-data-dir="$OUT/prof_$v$w" --hide-scrollbars \

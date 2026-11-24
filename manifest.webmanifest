@@ -1,8 +1,8 @@
 {
   "id": "./tablo.html",
-  "name": "Tablo – Révise tes calculs",
+  "name": "Tablo – Révise tes leçons",
   "short_name": "Tablo",
-  "description": "Tables d'addition, de multiplication, doubles et moitiés : révision avec sablier, points et suivi de progression.",
+  "description": "Tables d'addition, de multiplication, doubles et moitiés, verbes à connaître au présent : révision avec sablier, points et suivi de progression.",
   "lang": "fr",
   "start_url": "./tablo.html",
   "scope": "./",

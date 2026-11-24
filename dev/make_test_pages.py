@@ -25,10 +25,15 @@ for n in range(1, 16):
     facts[f"double:{n}"] = [[1, 2.0], [1, 2.5]]
 for n in (2, 4, 6, 8, 10, 12):
     facts[f"half:{n}"] = [[1, 3.1], [0, 6]]
+for v, lv in (("avoir", (1, 2)), ("être", (1, 2.5)), ("aller", (1, 5)), ("faire", (0, 8)), ("vouloir", (1, 3))):
+    for p in range(6):
+        facts[f"conj:{v}:{p}"] = [list(lv), [1 if p % 3 else 0, lv[1]]]
 hist = [{"d": 1763800000000 - i * 86400000, "type": "mul", "mode": "smart" if i % 2 else "random",
          "n": 10, "time": 10, "good": g, "note": g * 2, "pts": g * 70}
         for i, g in enumerate([9, 8, 8, 7, 7, 6, 8, 5, 6, 4, 5, 3])]
 settings = {"type": "mul", "mulTables": [3, 4, 7], "count": 10, "time": 10, "mode": "smart"}
+KID = 'document.querySelector(".kidcard").click();'
+ACT = lambda t: KID + 'document.querySelector(".act[data-type=' + t + ']").click();'
 db = {"kids": [{"id": "a1", "name": "Léa", "avatar": "🦊", "history": hist, "facts": facts, "records": {},
                 "settings": settings},
                {"id": "b2", "name": "Tom", "avatar": "🦖"}], "currentId": "a1"}
@@ -37,12 +42,26 @@ seed = "<script>localStorage.setItem('tablo.v1'," + json.dumps(json.dumps(db)) +
 base = src.replace("<style>", seed + "<style>", 1)
 nav = {
     "kids": "",
-    "setup": 'document.querySelector(".kidcard").click();',
-    "prog": 'document.querySelector(".kidcard").click();document.querySelector("[data-tab=scrProgress]").click();',
-    "game": 'document.querySelector(".kidcard").click();document.getElementById("btnGo").click();'
+    "menu": KID,
+    "setup": ACT("mul"),
+    "prog": ACT("mul") + 'document.querySelector("[data-tab=scrProgress]").click();',
+    "game": ACT("mul") + 'document.getElementById("btnGo").click();'
             'setTimeout(()=>{["4","2"].forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k})))},2400);',
+    "csetup": ACT("conj"),
+    "cprog": ACT("conj") + 'document.querySelector("[data-tab=scrProgress]").click();',
+    "cgame": ACT("conj") + 'document.getElementById("btnGo").click();'
+            'setTimeout(()=>{["o","n"].forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k})))},2400);',
+    # Séance de verbes complète : bonne terminaison (lue dans le catalogue via le texte), 3e fausse, puis écran de fin.
+    "cresult": ACT("conj") + 'document.getElementById("btnGo").click();'
+               'let last="",n=0;setInterval(()=>{const g=document.getElementById("qGap");'
+               'if(!document.querySelector("#scrGame.active")||!g||g===last)return;last=g;n++;'
+               'const ty=document.getElementById("qVerb").textContent;'
+               'const stem=document.querySelector("#qText .stem").textContent;'
+               'const pr=document.getElementById("qText").firstChild.textContent.trim();'
+               'const v=window.__tablo.conjAnswer(ty,pr,stem);const a=n===3?"zz":v;'
+               '(a+"\\n").split("").forEach(k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k==="\\n"?"Enter":k})))},300);',
     # Séance complète : répond juste à tout (sauf la 3e question), puis écran de fin.
-    "result": 'document.querySelector(".kidcard").click();document.getElementById("btnGo").click();'
+    "result": ACT("mul") + 'document.getElementById("btnGo").click();'
               'let last="",n=0;setInterval(()=>{const t=document.getElementById("qText").textContent;'
               'if(!document.querySelector("#scrGame.active")||t===last)return;last=t;n++;'
               'const r=String(eval(t.replace("×","*")));const v=n===3?"9".repeat(r.length):r;'
